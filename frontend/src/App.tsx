@@ -15,6 +15,8 @@ import AuditLogPage from "./pages/AuditLogPage";
 import CanteenPage from "./pages/CanteenPage";
 import LibraryPage from "./pages/LibraryPage";
 import TenantBillingPage from "./pages/TenantBillingPage";
+import EstablishmentSettingsPage from "./pages/EstablishmentSettingsPage";
+import ProfilePage from "./pages/ProfilePage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -50,6 +52,8 @@ export default function App() {
             <Route path="cantine" element={<CanteenPage />} />
             <Route path="bibliotheque" element={<LibraryPage />} />
             <Route path="etablissements/:tenantId" element={<TenantBillingPage />} />
+            <Route path="parametres" element={<EstablishmentSettingsPage />} />
+            <Route path="profil" element={<ProfilePage />} />
           </Route>
         </Routes>
       </AuthProvider>

@@ -49,13 +49,23 @@ def test_teacher_can_create_grade_but_not_lock_it(client, make_tenant, make_user
 def test_only_super_admin_can_create_tenant(client, make_user, auth_headers):
     school_admin, pwd = make_user(role=UserRole.SCHOOL_ADMIN)
     resp = client.post(
-        "/api/v1/tenants", json={"name": "Nouvelle École", "code": "new-school"}, headers=auth_headers(school_admin, pwd)
+        "/api/v1/tenants",
+        json={
+            "name": "Nouvelle École", "code": "new-school",
+            "admin_full_name": "X", "admin_email": "newschool-admin@example.com", "admin_password": "Str0ng#Passw0rd!",
+        },
+        headers=auth_headers(school_admin, pwd),
     )
     assert resp.status_code == 403
 
     super_admin, pwd2 = make_user(role=UserRole.SUPER_ADMIN)
     resp2 = client.post(
-        "/api/v1/tenants", json={"name": "Nouvelle École", "code": "new-school"}, headers=auth_headers(super_admin, pwd2)
+        "/api/v1/tenants",
+        json={
+            "name": "Nouvelle École", "code": "new-school-2",
+            "admin_full_name": "X", "admin_email": "newschool-admin-2@example.com", "admin_password": "Str0ng#Passw0rd!",
+        },
+        headers=auth_headers(super_admin, pwd2),
     )
     assert resp2.status_code == 201
 

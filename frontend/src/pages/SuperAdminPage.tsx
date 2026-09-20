@@ -62,7 +62,13 @@ export default function SuperAdminPage() {
     setTenantError(null);
     const form = new FormData(e.currentTarget);
     try {
-      await api.post("/tenants", { name: form.get("name"), code: form.get("code") });
+      await api.post("/tenants", {
+        name: form.get("name"),
+        code: form.get("code"),
+        admin_full_name: form.get("admin_full_name"),
+        admin_email: form.get("admin_email"),
+        admin_password: form.get("admin_password"),
+      });
       setShowTenantForm(false);
       reload();
     } catch (err) {
@@ -126,10 +132,14 @@ export default function SuperAdminPage() {
             <form onSubmit={handleCreateTenant} className="mt-4 border border-line rounded bg-white p-5 grid sm:grid-cols-2 gap-4">
               <TextField name="name" label="Nom de l'établissement" placeholder="École La Colombe" required />
               <TextField name="code" label="Code (identifiant court)" placeholder="colombe" required />
+              <div className="sm:col-span-2 pt-2 border-t border-line" />
+              <TextField name="admin_full_name" label="Nom complet de la direction" placeholder="Mme Directrice" required />
+              <TextField name="admin_email" label="E-mail de connexion de la direction" type="email" placeholder="direction@ecole.bj" required />
+              <TextField name="admin_password" label="Mot de passe provisoire" type="password" required />
               {tenantError && <p className="sm:col-span-2 text-sm text-brick">{tenantError}</p>}
               <div className="sm:col-span-2">
                 <button type="submit" className="rounded bg-ochre text-navy-deep text-sm font-medium px-4 py-2 hover:bg-ochre-dark transition">
-                  Créer l'établissement
+                  Créer l'établissement et son compte Direction
                 </button>
               </div>
             </form>

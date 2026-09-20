@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import {
   LayoutGrid, Users, GraduationCap, Wallet, ShieldCheck, Bell, ScrollText, UtensilsCrossed, Library as LibraryIcon,
+  Settings, UserCircle,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
@@ -25,6 +26,7 @@ function navItemsFor(role: string) {
   ];
 
   if (role === "network_admin") {
+    items.push({ to: "/profil", label: "Profil", icon: UserCircle });
     items.push({ to: "/securite", label: "Sécurité", icon: ShieldCheck });
     return items;
   }
@@ -32,6 +34,7 @@ function navItemsFor(role: string) {
   if (role === "parent") {
     items.push({ to: "/mes-enfants", label: "Mes enfants", icon: Users });
     items.push({ to: "/notifications", label: "Notifications", icon: Bell });
+    items.push({ to: "/profil", label: "Profil", icon: UserCircle });
     return items;
   }
 
@@ -47,8 +50,10 @@ function navItemsFor(role: string) {
   if (role === "school_admin") {
     items.push({ to: "/rapports", label: "Rapports", icon: GraduationCap });
     items.push({ to: "/personnel", label: "Personnel", icon: Wallet });
+    items.push({ to: "/parametres", label: "Paramètres établissement", icon: Settings });
     items.push({ to: "/audit", label: "Journal d'audit", icon: ScrollText });
   }
+  items.push({ to: "/profil", label: "Profil", icon: UserCircle });
   items.push({ to: "/securite", label: "Sécurité", icon: ShieldCheck });
   return items;
 }

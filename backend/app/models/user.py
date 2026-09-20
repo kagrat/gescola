@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -54,6 +54,15 @@ class User(Base, TimestampMixin):
     # seul mfa_enabled est lu par le flux de connexion.
     mfa_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # --- Signature et tampon personnels ---
+    # Chaque utilisateur renseigne sa propre signature (et, le cas échéant,
+    # son tampon) depuis son propre profil, une fois connecté — jamais rempli
+    # ou modifié par un tiers, y compris la Direction. Utilisés pour
+    # authentifier les documents qu'il valide (bulletins, attestations).
+    # Stockage en base64 directement en base, comme pour Tenant.logo_base64.
+    signature_base64: Mapped[str | None] = mapped_column(Text, nullable=True)
+    stamp_base64: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     tenant: Mapped["Tenant"] = relationship(back_populates="users")
 

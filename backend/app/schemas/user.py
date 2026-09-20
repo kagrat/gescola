@@ -9,6 +9,17 @@ from app.models.user import UserRole
 class TenantCreate(BaseModel):
     name: str
     code: str
+    admin_full_name: str
+    admin_email: EmailStr
+    admin_password: str
+
+    @field_validator("admin_password")
+    @classmethod
+    def admin_password_strength(cls, v: str) -> str:
+        errors = validate_password_strength(v)
+        if errors:
+            raise ValueError(" ".join(errors))
+        return v
 
 
 class TenantOut(BaseModel):
