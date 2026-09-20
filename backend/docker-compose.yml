@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gescola_app
+      POSTGRES_PASSWORD: gescola_dev_change_me
+      POSTGRES_DB: gescola_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - gescola_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gescola_app -d gescola_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://gescola_app:gescola_dev_change_me@db:5432/gescola_dev
+      JWT_SECRET_KEY: CHANGE_ME_INSECURE_DEV_ONLY_DO_NOT_USE_IN_PROD
+      ENVIRONMENT: development
+      CORS_ALLOWED_ORIGINS: '["http://localhost:5173"]'
+    ports:
+      - "8000:8000"
+    # Pas de `command:` ici : le Dockerfile lance déjà les migrations puis
+    # uvicorn (voir Dockerfile), ce qui garde un seul endroit à maintenir.
+
+volumes:
+  gescola_db_data:

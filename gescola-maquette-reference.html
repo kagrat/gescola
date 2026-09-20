@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GESCOLA — Maquette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-950:#182A4A;
+    --ink-900:#1F3358;
+    --ink-800:#2A4270;
+    --ink-line: rgba(255,255,255,0.09);
+    --sky-500:#3E8FD9;
+    --sky-200:#BFDCF5;
+    --emerald-500:#2FA671;
+    --emerald-200:#BEE6D2;
+    --coral-500:#E1584F;
+    --amber-500:#D9822B;
+    --amber-200:#F3D9B3;
+    --cream-50:#F8F5EE;
+    --cream-100:#F0EBDD;
+    --ink-text:#1C2333;
+    --ink-600:#5B6273;
+    --ink-400:#8C93A3;
+    --line: rgba(28,35,51,0.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--cream-50);
+    color:var(--ink-text);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:'Lora',serif;}
+  .app{display:flex;min-height:100vh;width:100%;}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{width:256px;flex-shrink:0;background:var(--ink-950);color:var(--cream-50);display:flex;flex-direction:column;padding:24px 16px;}
+  .brand{display:flex;align-items:center;gap:11px;padding:0 6px 18px 6px;}
+  .brand-mark{width:36px;height:36px;border-radius:9px;background:linear-gradient(155deg,var(--sky-200),var(--sky-500));display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-weight:700;color:var(--ink-950);font-size:16px;flex-shrink:0;}
+  .brand-text .name{font-family:'Lora',serif;font-weight:700;font-size:16px;}
+  .brand-text .sub{font-size:10.5px;color:var(--sky-200);margin-top:1px;letter-spacing:.3px;}
+
+  .tenant-switch{
+    display:flex;align-items:center;gap:10px;
+    background:var(--ink-900);border:1px solid var(--ink-line);
+    border-radius:10px;padding:11px 12px;margin-bottom:18px;cursor:pointer;
+  }
+  .tenant-switch .t-logo{width:26px;height:26px;border-radius:7px;background:var(--emerald-500);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
+  .tenant-switch .t-info{flex:1;min-width:0;}
+  .tenant-switch .t-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tenant-switch .t-role{font-size:10.5px;color:var(--ink-400);}
+  .tenant-switch .chev{color:var(--ink-400);font-size:11px;}
+
+  .nav{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:2px;flex:1;}
+  .nav-group-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-400);padding:14px 12px 6px 12px;font-weight:600;}
+  .nav li{display:flex;}
+  .nav button{
+    all:unset;display:flex;align-items:center;gap:12px;width:100%;padding:10.5px 12px;
+    border-radius:8px;font-size:13.5px;font-weight:500;color:#AEB6CB;cursor:pointer;position:relative;
+    transition:background .15s ease, color .15s ease;
+  }
+  .nav button:hover{background:var(--ink-900);color:var(--cream-50);}
+  .nav button.active{background:var(--ink-900);color:var(--cream-50);}
+  .nav button.active::before{content:"";position:absolute;left:-16px;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--sky-500);}
+  .nav .icon{width:17px;height:17px;flex-shrink:0;opacity:.9;}
+
+  .sidebar-foot{border-top:1px solid var(--ink-line);padding-top:14px;margin-top:10px;display:flex;align-items:center;gap:10px;}
+  .avatar{width:33px;height:33px;border-radius:8px;background:var(--ink-800);display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-weight:700;font-size:12px;color:var(--sky-200);flex-shrink:0;}
+  .sidebar-foot .who .n{font-size:12.5px;font-weight:600;color:var(--cream-50);}
+  .sidebar-foot .who .r{font-size:11px;color:var(--ink-400);}
+
+  /* ---------- MAIN ---------- */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:22px 34px;border-bottom:1px solid var(--line);background:var(--cream-50);}
+  .topbar h1{font-size:21px;font-weight:700;margin:0;letter-spacing:-.2px;}
+  .topbar .stamp{font-size:12.5px;color:var(--ink-600);margin-top:3px;}
+  .top-actions{display:flex;align-items:center;gap:12px;}
+  .search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;color:var(--ink-400);min-width:230px;}
+  .btn{font-family:'Inter',sans-serif;border:none;cursor:pointer;border-radius:9px;font-size:13.5px;font-weight:600;padding:10px 16px;display:inline-flex;align-items:center;gap:8px;}
+  .btn-primary{background:var(--ink-950);color:var(--sky-200);}
+  .btn-primary:hover{background:var(--ink-900);}
+  .btn-accent{background:var(--emerald-500);color:#fff;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink-text);}
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;}
+  .pad{padding:30px 34px 60px 34px;}
+  .card-pad{padding:22px 24px;}
+
+  /* ---------- DASHBOARD GROUPE (multi-tenant) ---------- */
+  .school-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .school-card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:border-color .15s ease;}
+  .school-card:hover{border-color:var(--sky-500);}
+  .school-band{height:64px;background:linear-gradient(135deg,var(--ink-900),var(--ink-950));position:relative;display:flex;align-items:flex-end;padding:12px 16px;}
+  .school-band .badge{position:absolute;top:10px;right:12px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.14);color:#fff;}
+  .school-band .badge.alert{background:var(--coral-500);}
+  .school-band .s-init{font-family:'Lora',serif;font-weight:700;color:var(--sky-200);font-size:14px;}
+  .school-body{padding:16px;}
+  .school-body .s-name{font-size:14.5px;font-weight:700;}
+  .school-body .s-loc{font-size:11.5px;color:var(--ink-400);margin-top:2px;}
+  .school-stats{display:flex;justify-content:space-between;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+  .school-stats .ss{text-align:left;}
+  .school-stats .ss .v{font-family:'Lora',serif;font-weight:700;font-size:16px;}
+  .school-stats .ss .k{font-size:10.5px;color:var(--ink-400);}
+
+  .hero-row{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+  .hero-card{background:var(--ink-950);color:var(--cream-50);border-radius:14px;padding:26px;position:relative;overflow:hidden;}
+  .hero-card::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle, rgba(62,143,217,.35), transparent 70%);}
+  .hero-card .label{font-size:12.5px;color:var(--sky-200);font-weight:600;}
+  .hero-card .num{font-family:'Lora',serif;font-weight:700;font-size:38px;margin:10px 0 4px 0;letter-spacing:-.5px;}
+  .hero-card .delta{font-size:12.5px;color:var(--emerald-200);}
+  .stat-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;justify-content:space-between;}
+  .stat-card .label{font-size:12.5px;color:var(--ink-600);font-weight:600;}
+  .stat-card .num{font-family:'Lora',serif;font-weight:700;font-size:25px;margin-top:10px;}
+  .stat-card .delta{font-size:12px;margin-top:6px;}
+  .delta.up{color:var(--emerald-500);}
+  .delta.down{color:var(--coral-500);}
+
+  .grid-2{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .card-head h3{font-size:15px;margin:0;font-weight:700;}
+  .card-head .link{font-size:12.5px;color:var(--ink-600);font-weight:600;cursor:pointer;}
+
+  .bars{display:flex;align-items:flex-end;gap:10px;height:150px;margin-top:6px;}
+  .bar{flex:1;border-radius:6px 6px 3px 3px;background:var(--ink-800);position:relative;}
+  .bar.peak{background:linear-gradient(180deg,var(--sky-200),var(--sky-500));}
+  .bar-lbl{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:10.5px;color:var(--ink-400);}
+
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;font-size:11.5px;color:var(--ink-400);font-weight:600;padding:0 12px 10px 12px;border-bottom:1px solid var(--line);}
+  td{padding:13px 12px;border-bottom:1px solid var(--line);font-size:13.5px;}
+  tr:last-child td{border-bottom:none;}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:600;}
+  .pill-dot{width:6px;height:6px;border-radius:50%;}
+  .pill.ok{background:rgba(47,166,113,.12);color:#1F7A52;}
+  .pill.ok .pill-dot{background:var(--emerald-500);}
+  .pill.warn{background:rgba(62,143,217,.12);color:#2568A3;}
+  .pill.warn .pill-dot{background:var(--sky-500);}
+  .pill.bad{background:rgba(225,88,79,.12);color:#B03A32;}
+  .pill.bad .pill-dot{background:var(--coral-500);}
+
+  .list-line{display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line);}
+  .list-line:last-child{border:none;padding-bottom:0;}
+  .list-line .who{font-size:13.5px;font-weight:600;}
+  .list-line .what{font-size:12px;color:var(--ink-600);margin-top:2px;}
+
+  /* ---------- CYCLES (maternelle / primaire / secondaire) ---------- */
+  .cycle-tabs{display:flex;gap:4px;padding:4px;background:var(--cream-100);border-radius:11px;width:fit-content;margin-bottom:18px;}
+  .cycle-tab{display:flex;align-items:center;padding:8px 16px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--ink-600);cursor:pointer;}
+  .cycle-tab .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:7px;}
+  .cycle-tab.mat .dot{background:var(--amber-500);}
+  .cycle-tab.pri .dot{background:var(--sky-500);}
+  .cycle-tab.sec .dot{background:var(--emerald-500);}
+  .cycle-tab.active{background:#fff;color:var(--ink-text);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+
+  .cycle-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .cycle-chip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:5px 10px;border-radius:7px;background:var(--cream-100);color:var(--ink-600);}
+  .cycle-chip .dot{width:6px;height:6px;border-radius:50%;}
+  .cycle-chip.mat .dot{background:var(--amber-500);}
+  .cycle-chip.pri .dot{background:var(--sky-500);}
+  .cycle-chip.sec .dot{background:var(--emerald-500);}
+
+  .comp-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+  .comp-pill.acquis{background:rgba(47,166,113,.12);color:#1F7A52;}
+  .comp-pill.cours{background:rgba(217,130,43,.14);color:#9A5F17;}
+  .comp-pill.non{background:rgba(225,88,79,.12);color:#B03A32;}
+
+  /* ---------- ÉLÈVES ---------- */
+  .filters{display:flex;gap:10px;margin-bottom:18px;align-items:center;}
+  .chip{padding:8px 14px;border-radius:20px;border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--ink-600);cursor:pointer;background:#fff;}
+  .chip.active{background:var(--ink-950);color:var(--sky-200);border-color:var(--ink-950);}
+  .student-avatar{width:32px;height:32px;border-radius:8px;background:var(--ink-900);color:var(--sky-200);display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-weight:700;font-size:11.5px;margin-right:10px;flex-shrink:0;}
+  .flex-name{display:flex;align-items:center;}
+
+  /* ---------- CLASSES / EMPLOI DU TEMPS ---------- */
+  .tt-grid{display:grid;grid-template-columns:70px repeat(5,1fr);gap:8px;}
+  .tt-head{font-size:11.5px;font-weight:700;color:var(--ink-600);text-align:center;padding:8px 0;}
+  .tt-time{font-size:11px;color:var(--ink-400);padding-top:10px;text-align:right;padding-right:6px;}
+  .tt-cell{min-height:56px;}
+  .tt-block{background:#fff;border:1px solid var(--line);border-left:3px solid var(--sky-500);border-radius:8px;padding:8px 10px;font-size:11.5px;height:100%;}
+  .tt-block.math{border-left-color:var(--emerald-500);}
+  .tt-block.sci{border-left-color:var(--coral-500);}
+  .tt-block .tb-title{font-weight:700;}
+  .tt-block .tb-room{color:var(--ink-400);margin-top:2px;}
+
+  /* ---------- BULLETINS / NOTES ---------- */
+  .grade-bar-wrap{display:flex;align-items:center;gap:10px;}
+  .grade-bar-track{flex:1;height:7px;background:var(--cream-100);border-radius:4px;overflow:hidden;}
+  .grade-bar-fill{height:100%;border-radius:4px;background:var(--emerald-500);}
+  .grade-bar-fill.mid{background:var(--sky-500);}
+  .grade-bar-fill.low{background:var(--coral-500);}
+
+  /* ---------- FINANCES ---------- */
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;}
+
+  /* ---------- COMMUNICATION ---------- */
+  .msg-layout{display:grid;grid-template-columns:300px 1fr;gap:16px;height:520px;}
+  .thread-list{overflow:auto;}
+  .thread-item{display:flex;gap:10px;padding:13px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .thread-item.sel{background:var(--cream-100);}
+  .thread-item .t-name{font-size:13px;font-weight:700;}
+  .thread-item .t-prev{font-size:11.5px;color:var(--ink-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .thread-item .t-time{font-size:10.5px;color:var(--ink-400);white-space:nowrap;}
+  .msg-body{display:flex;flex-direction:column;}
+  .msg-thread-head{padding:16px 20px;border-bottom:1px solid var(--line);}
+  .msg-thread-head .mh-name{font-size:14.5px;font-weight:700;}
+  .msg-thread-head .mh-sub{font-size:11.5px;color:var(--ink-400);}
+  .msg-scroll{flex:1;padding:20px;display:flex;flex-direction:column;gap:12px;overflow:auto;}
+  .bubble{max-width:70%;padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.45;}
+  .bubble.them{background:var(--cream-100);align-self:flex-start;border-bottom-left-radius:4px;}
+  .bubble.me{background:var(--ink-950);color:var(--cream-50);align-self:flex-end;border-bottom-right-radius:4px;}
+  .msg-input{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--line);}
+  .msg-input input{flex:1;border:1px solid var(--line);border-radius:9px;padding:10px 13px;font-family:'Inter',sans-serif;font-size:13px;}
+
+  /* ---------- LOGIN / TENANT SELECT ---------- */
+  .login-wrap{min-height:100vh;display:flex;background:var(--ink-950);}
+  .login-visual{flex:1.1;background:radial-gradient(circle at 25% 20%, rgba(62,143,217,.20), transparent 45%),radial-gradient(circle at 80% 80%, rgba(47,166,113,.16), transparent 50%),var(--ink-950);display:flex;flex-direction:column;justify-content:space-between;padding:52px;}
+  .login-visual .top .name{font-family:'Lora',serif;font-weight:700;font-size:20px;color:var(--cream-50);}
+  .login-visual .top .sub{font-size:12px;color:var(--sky-200);margin-top:4px;letter-spacing:.3px;}
+  .login-visual .quote{max-width:400px;}
+  .login-visual .quote p{font-family:'Lora',serif;font-size:25px;font-weight:600;color:var(--cream-50);line-height:1.4;margin:0;}
+  .login-visual .quote .attrib{font-size:12.5px;color:var(--ink-400);margin-top:16px;}
+  .login-form-side{width:440px;background:var(--cream-50);display:flex;align-items:center;justify-content:center;padding:40px;}
+  .login-box{width:100%;max-width:320px;}
+  .login-box h2{font-size:22px;margin:0 0 6px 0;}
+  .login-box .sub{font-size:13px;color:var(--ink-600);margin-bottom:24px;}
+  .field{margin-bottom:14px;}
+  .field label{font-size:12px;font-weight:600;color:var(--ink-600);display:block;margin-bottom:6px;}
+  .field input,.field select{width:100%;padding:11px 13px;border-radius:9px;border:1px solid var(--line);font-family:'Inter',sans-serif;font-size:13.5px;background:#fff;}
+  .field input:focus,.field select:focus{outline:2px solid var(--sky-500);outline-offset:1px;}
+  .login-box .btn{width:100%;justify-content:center;padding:12px;margin-top:6px;}
+  .login-tabs{display:flex;gap:4px;background:var(--cream-100);padding:4px;border-radius:10px;margin-bottom:22px;}
+  .login-tab{flex:1;text-align:center;padding:8px 0;border-radius:7px;font-size:12px;font-weight:600;color:var(--ink-600);cursor:pointer;}
+  .login-tab.active{background:#fff;color:var(--ink-text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+  /* ---------- PARENT PORTAL ---------- */
+  .parent-shell{background:var(--cream-50);min-height:100vh;}
+  .parent-header{display:flex;align-items:center;justify-content:space-between;padding:18px 30px;background:#fff;border-bottom:1px solid var(--line);}
+  .parent-header .ph-brand{display:flex;align-items:center;gap:10px;}
+  .parent-header .ph-brand .brand-mark{width:32px;height:32px;font-size:14px;}
+  .parent-header .ph-brand .name{font-family:'Lora',serif;font-weight:700;font-size:15px;color:var(--ink-text);}
+  .parent-header .ph-brand .sub{font-size:10.5px;color:var(--ink-400);}
+  .parent-header .ph-user{display:flex;align-items:center;gap:10px;}
+  .parent-header .ph-user .avatar{background:var(--ink-900);}
+  .parent-header .ph-logout{font-size:12px;color:var(--ink-600);cursor:pointer;margin-left:8px;}
+
+  .parent-body{max-width:920px;margin:0 auto;padding:26px 24px 60px 24px;}
+  .child-switch{display:flex;gap:12px;margin-bottom:22px;overflow-x:auto;}
+  .child-pill{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 16px;cursor:pointer;flex-shrink:0;}
+  .child-pill.sel{border-color:var(--sky-500);background:rgba(62,143,217,.06);}
+  .child-pill .cp-avatar{width:34px;height:34px;border-radius:9px;background:var(--ink-900);color:var(--sky-200);display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-weight:700;font-size:12px;}
+  .child-pill .cp-name{font-size:13px;font-weight:700;}
+  .child-pill .cp-meta{font-size:11px;color:var(--ink-400);}
+
+  .parent-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+  .ptab{padding:9px 16px;border-radius:20px;border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--ink-600);cursor:pointer;background:#fff;}
+  .ptab.active{background:var(--ink-950);color:var(--sky-200);border-color:var(--ink-950);}
+  .pscreen{display:none;}
+  .pscreen.active{display:block;}
+
+  .notif-item{display:flex;gap:12px;padding:15px 0;border-bottom:1px solid var(--line);}
+  .notif-item:last-child{border:none;}
+  .notif-dot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex-shrink:0;background:var(--sky-500);}
+  .notif-item.read .notif-dot{background:var(--line);}
+  .notif-item .ni-tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:4px;}
+  .ni-tag.info{background:rgba(62,143,217,.12);color:#2568A3;}
+  .ni-tag.finance{background:rgba(225,88,79,.12);color:#B03A32;}
+  .ni-tag.result{background:rgba(47,166,113,.12);color:#1F7A52;}
+  .notif-item .ni-title{font-size:13.5px;font-weight:600;}
+  .notif-item .ni-body{font-size:12.5px;color:var(--ink-600);margin-top:2px;}
+  .notif-item .ni-time{font-size:11px;color:var(--ink-400);margin-top:4px;}
+
+  .screen-switch-note{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink-950);color:var(--cream-50);padding:9px 16px;border-radius:20px;font-size:11.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:50;display:flex;align-items:center;gap:8px;}
+  .screen-switch-note .dot{width:6px;height:6px;border-radius:50%;background:var(--sky-500);}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-visual">
+      <div class="top">
+        <div class="name">GESCOLA</div>
+        <div class="sub">GESTION SCOLAIRE MULTI-ÉTABLISSEMENTS</div>
+      </div>
+      <div class="quote">
+        <p>"Un seul espace pour piloter tous vos établissements — élèves, notes, finances et communication."</p>
+        <div class="attrib">Plateforme pensée pour les groupes scolaires d'Afrique de l'Ouest</div>
+      </div>
+    </div>
+    <div class="login-form-side">
+      <div class="login-box">
+        <h2>Connexion</h2>
+        <div class="login-tabs">
+          <div class="login-tab active" id="tab-staff" onclick="switchLoginTab('staff')">Espace établissement</div>
+          <div class="login-tab" id="tab-parent" onclick="switchLoginTab('parent')">Espace parent</div>
+        </div>
+
+        <div id="staff-login-form">
+          <div class="sub">Accédez à votre espace de gestion</div>
+          <div class="field">
+            <label>Établissement</label>
+            <select><option>Groupe Scolaire La Colombe</option></select>
+          </div>
+          <div class="field">
+            <label>Identifiant</label>
+            <input type="text" value="direction.colombe">
+          </div>
+          <div class="field">
+            <label>Mot de passe</label>
+            <input type="password" value="••••••••">
+          </div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;margin-top:6px;" onclick="goToApp()">Se connecter</button>
+          <div style="text-align:center;font-size:12px;color:var(--ink-400);margin-top:16px;">Mot de passe oublié ?</div>
+        </div>
+
+        <div id="parent-login-form" style="display:none;">
+          <div class="sub">Suivez la scolarité de votre enfant</div>
+          <div class="field">
+            <label>Numéro de téléphone</label>
+            <input type="text" value="+229 97 45 12 08">
+          </div>
+          <div class="field">
+            <label>Code reçu par SMS</label>
+            <input type="text" value="4 8 2 1">
+          </div>
+          <button class="btn btn-accent" style="width:100%;justify-content:center;padding:12px;margin-top:6px;" onclick="goToParentApp()">Se connecter</button>
+          <div style="text-align:center;font-size:12px;color:var(--ink-400);margin-top:16px;">Renvoyer le code</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app-shell" style="display:none;">
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">G</div>
+      <div class="brand-text"><div class="name">GESCOLA</div><div class="sub">Gestion scolaire</div></div>
+    </div>
+
+    <div class="tenant-switch">
+      <div class="t-logo">LC</div>
+      <div class="t-info">
+        <div class="t-name">Groupe Scolaire La Colombe</div>
+        <div class="t-role">Maternelle · Primaire · Secondaire</div>
+      </div>
+      <div class="chev">⌄</div>
+    </div>
+
+    <ul class="nav">
+      <li><button class="active" data-screen="group-dashboard"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><rect x="14" y="14" width="7" height="7" rx="1.4"/></svg>Vue du groupe</button></li>
+      <li><button data-screen="school-dashboard"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-7h6v7"/></svg>Tableau de bord</button></li>
+      <li><button data-screen="students"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.2-4 4-6 7.5-6s6.3 2 7.5 6"/></svg>Élèves</button></li>
+      <li><button data-screen="timetable"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 4v3M16 4v3"/></svg>Classes & Emploi du temps</button></li>
+      <li><button data-screen="grades"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z"/><path d="M8 7h8M8 11h5"/></svg>Notes & Bulletins</button></li>
+      <li><button data-screen="finance"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg>Finances / Scolarité</button></li>
+      <li><button data-screen="comm"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Communication</button></li>
+    </ul>
+    <div class="sidebar-foot">
+      <div class="avatar">MS</div>
+      <div class="who"><div class="n">Mireille S.</div><div class="r">Directrice</div></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- GROUP DASHBOARD (multi-tenant overview) -->
+    <div class="screen active" id="group-dashboard">
+      <div class="topbar">
+        <div><h1>Vue du groupe</h1><div class="stamp">4 établissements · Année scolaire 2026–2027</div></div>
+        <div class="top-actions">
+          <div class="search-box">🔍 Rechercher un établissement…</div>
+          <button class="btn btn-accent">+ Ajouter un établissement</button>
+        </div>
+      </div>
+      <div class="pad">
+        <div class="hero-row">
+          <div class="hero-card">
+            <div class="label">Élèves inscrits — tout le groupe</div>
+            <div class="num">3 412</div>
+            <div class="delta">↑ 6% vs année dernière</div>
+          </div>
+          <div class="stat-card"><div class="label">Taux de recouvrement</div><div class="num">82%</div><div class="delta up">↑ 4 pts</div></div>
+          <div class="stat-card"><div class="label">Établissements en alerte</div><div class="num">1</div><div class="delta down">Impayés élevés</div></div>
+        </div>
+
+        <div class="card-head" style="margin-top:6px;"><h3>Établissements</h3><div class="link">Gérer →</div></div>
+        <div class="school-grid" style="grid-template-columns:repeat(2,1fr);">
+          <div class="school-card">
+            <div class="school-band"><span class="badge">3 cycles</span><span class="s-init">LC</span></div>
+            <div class="school-body">
+              <div class="s-name">Groupe Scolaire La Colombe</div>
+              <div class="s-loc">Cotonou, Akpakpa</div>
+              <div class="cycle-row">
+                <span class="cycle-chip mat"><span class="dot"></span>Maternelle · 296</span>
+                <span class="cycle-chip pri"><span class="dot"></span>Primaire · 852</span>
+                <span class="cycle-chip sec"><span class="dot"></span>Secondaire · 964</span>
+              </div>
+              <div class="school-stats">
+                <div class="ss"><div class="v">2 112</div><div class="k">Élèves au total</div></div>
+                <div class="ss"><div class="v">82</div><div class="k">Personnel</div></div>
+                <div class="ss"><div class="v">85%</div><div class="k">Recouvré</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="school-card">
+            <div class="school-band"><span class="badge alert">Attention</span><span class="s-init">SM</span></div>
+            <div class="school-body">
+              <div class="s-name">Complexe Saint-Michel</div>
+              <div class="s-loc">Porto-Novo</div>
+              <div class="cycle-row">
+                <span class="cycle-chip mat"><span class="dot"></span>Maternelle · 118</span>
+                <span class="cycle-chip pri"><span class="dot"></span>Primaire · 340</span>
+                <span class="cycle-chip sec"><span class="dot"></span>Secondaire · 254</span>
+              </div>
+              <div class="school-stats">
+                <div class="ss"><div class="v">712</div><div class="k">Élèves au total</div></div>
+                <div class="ss"><div class="v">29</div><div class="k">Personnel</div></div>
+                <div class="ss"><div class="v">61%</div><div class="k">Recouvré</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="school-card">
+            <div class="school-band"><span class="badge">2 cycles</span><span class="s-init">EA</span></div>
+            <div class="school-body">
+              <div class="s-name">École Étoile d'Abomey</div>
+              <div class="s-loc">Abomey-Calavi</div>
+              <div class="cycle-row">
+                <span class="cycle-chip mat"><span class="dot"></span>Maternelle · 210</span>
+                <span class="cycle-chip pri"><span class="dot"></span>Primaire · 378</span>
+              </div>
+              <div class="school-stats">
+                <div class="ss"><div class="v">588</div><div class="k">Élèves au total</div></div>
+                <div class="ss"><div class="v">21</div><div class="k">Personnel</div></div>
+                <div class="ss"><div class="v">91%</div><div class="k">Recouvré</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCHOOL DASHBOARD -->
+    <div class="screen" id="school-dashboard">
+      <div class="topbar">
+        <div><h1>Tableau de bord</h1><div class="stamp">École La Colombe — Primaire · Année 2026–2027</div></div>
+        <div class="top-actions"><button class="btn btn-accent">+ Nouvel élève</button></div>
+      </div>
+      <div class="pad">
+        <div class="hero-row">
+          <div class="hero-card"><div class="label">Élèves inscrits</div><div class="num">1 148</div><div class="delta">↑ 22 depuis septembre</div></div>
+          <div class="stat-card"><div class="label">Taux de présence — jour</div><div class="num">96,4%</div><div class="delta up">↑ 1,2 pt</div></div>
+          <div class="stat-card"><div class="label">Frais impayés</div><div class="num">132</div><div class="delta down">Familles concernées</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel card-pad">
+            <div class="card-head"><h3>Inscriptions par mois</h3><div class="link">Voir tout →</div></div>
+            <div class="bars">
+              <div class="bar" style="height:30%;"><span class="bar-lbl">Juin</span></div>
+              <div class="bar" style="height:48%;"><span class="bar-lbl">Juil</span></div>
+              <div class="bar peak" style="height:95%;"><span class="bar-lbl">Août</span></div>
+              <div class="bar" style="height:62%;"><span class="bar-lbl">Sept</span></div>
+              <div class="bar" style="height:20%;"><span class="bar-lbl">Oct</span></div>
+            </div>
+          </div>
+          <div class="panel card-pad">
+            <div class="card-head"><h3>À traiter</h3></div>
+            <div style="display:flex;flex-direction:column;gap:14px;">
+              <div class="list-line"><div><div class="who">Dossiers d'inscription</div><div class="what">6 en attente de validation</div></div><span class="pill warn"><span class="pill-dot"></span>À revoir</span></div>
+              <div class="list-line"><div><div class="who">Bulletins trimestre 1</div><div class="what">3 classes non finalisées</div></div><span class="pill warn"><span class="pill-dot"></span>En cours</span></div>
+              <div class="list-line"><div><div class="who">Relances impayés</div><div class="what">132 familles à relancer</div></div><span class="pill bad"><span class="pill-dot"></span>Urgent</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel card-pad" style="margin-top:16px;">
+          <div class="card-head"><h3>Dernières inscriptions</h3><div class="link">Voir tout →</div></div>
+          <table>
+            <thead><tr><th>Élève</th><th>Classe</th><th>Tuteur</th><th>Date d'inscription</th><th>Statut dossier</th></tr></thead>
+            <tbody>
+              <tr><td>Divine A.</td><td>CM1 B</td><td>M. Ayéna F.</td><td>12/09/2026</td><td><span class="pill ok"><span class="pill-dot"></span>Complet</span></td></tr>
+              <tr><td>Kévin H.</td><td>CE2 A</td><td>Mme Houngbo R.</td><td>11/09/2026</td><td><span class="pill ok"><span class="pill-dot"></span>Complet</span></td></tr>
+              <tr><td>Nadège S.</td><td>CP B</td><td>M. Soglo D.</td><td>10/09/2026</td><td><span class="pill warn"><span class="pill-dot"></span>Pièce manquante</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUDENTS -->
+    <div class="screen" id="students">
+      <div class="topbar">
+        <div><h1>Élèves</h1><div class="stamp">1 148 élèves inscrits · 6 dossiers en attente</div></div>
+        <div class="top-actions"><div class="search-box">🔍 Rechercher un élève…</div><button class="btn btn-accent">+ Nouvel élève</button></div>
+      </div>
+      <div class="pad">
+        <div class="filters">
+          <div class="chip active">Tous les cycles</div>
+          <div class="chip">Maternelle</div>
+          <div class="chip">Primaire</div>
+          <div class="chip">Secondaire</div>
+        </div>
+        <div class="filters">
+          <div class="chip active">Toutes les classes</div>
+          <div class="chip">CP</div>
+          <div class="chip">CE1 / CE2</div>
+          <div class="chip">CM1 / CM2</div>
+          <div class="chip">Dossier incomplet</div>
+        </div>
+        <div class="panel card-pad">
+          <table>
+            <thead><tr><th>Élève</th><th>Cycle</th><th>Classe</th><th>Tuteur</th><th>Scolarité</th><th>Statut</th></tr></thead>
+            <tbody>
+              <tr><td><div class="flex-name"><div class="student-avatar">FZ</div>Fadel Z.</div></td><td><span class="cat-tag">Maternelle</span></td><td>Petite Section B</td><td>Mme Zannou K.</td><td>À jour</td><td><span class="pill ok"><span class="pill-dot"></span>Actif</span></td></tr>
+              <tr><td><div class="flex-name"><div class="student-avatar">DA</div>Divine A.</div></td><td><span class="cat-tag">Primaire</span></td><td>CM1 B</td><td>M. Ayéna F.</td><td>À jour</td><td><span class="pill ok"><span class="pill-dot"></span>Actif</span></td></tr>
+              <tr><td><div class="flex-name"><div class="student-avatar">KH</div>Kévin H.</div></td><td><span class="cat-tag">Primaire</span></td><td>CE2 A</td><td>Mme Houngbo R.</td><td>À jour</td><td><span class="pill ok"><span class="pill-dot"></span>Actif</span></td></tr>
+              <tr><td><div class="flex-name"><div class="student-avatar">NS</div>Nadège S.</div></td><td><span class="cat-tag">Primaire</span></td><td>CP B</td><td>M. Soglo D.</td><td>Retard 1 tranche</td><td><span class="pill warn"><span class="pill-dot"></span>Dossier incomplet</span></td></tr>
+              <tr><td><div class="flex-name"><div class="student-avatar">IA</div>Ismaël A.</div></td><td><span class="cat-tag">Secondaire</span></td><td>6ème A</td><td>M. Ayéna F.</td><td>À jour</td><td><span class="pill ok"><span class="pill-dot"></span>Actif</span></td></tr>
+              <tr><td><div class="flex-name"><div class="student-avatar">CV</div>Chloé V.</div></td><td><span class="cat-tag">Secondaire</span></td><td>Terminale D</td><td>M. Vigan T.</td><td>Retard 2 tranches</td><td><span class="pill bad"><span class="pill-dot"></span>Impayé</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMETABLE -->
+    <div class="screen" id="timetable">
+      <div class="topbar">
+        <div><h1>Classes & Emploi du temps</h1><div class="stamp">CM1 B · 32 élèves · Titulaire: Mme Kponou A.</div></div>
+        <div class="top-actions"><div class="chip active" style="background:#fff;">CM1 B ⌄</div><button class="btn btn-primary">+ Ajouter un cours</button></div>
+      </div>
+      <div class="pad">
+        <div class="panel card-pad">
+          <div class="tt-grid">
+            <div></div>
+            <div class="tt-head">Lundi</div><div class="tt-head">Mardi</div><div class="tt-head">Mercredi</div><div class="tt-head">Jeudi</div><div class="tt-head">Vendredi</div>
+
+            <div class="tt-time">8h</div>
+            <div class="tt-cell"><div class="tt-block math"><div class="tb-title">Mathématiques</div><div class="tb-room">Salle 12</div></div></div>
+            <div class="tt-cell"><div class="tt-block"><div class="tb-title">Français</div><div class="tb-room">Salle 12</div></div></div>
+            <div class="tt-cell"><div class="tt-block sci"><div class="tb-title">Sciences</div><div class="tb-room">Labo</div></div></div>
+            <div class="tt-cell"><div class="tt-block math"><div class="tb-title">Mathématiques</div><div class="tb-room">Salle 12</div></div></div>
+            <div class="tt-cell"><div class="tt-block"><div class="tb-title">Français</div><div class="tb-room">Salle 12</div></div></div>
+
+            <div class="tt-time">10h</div>
+            <div class="tt-cell"><div class="tt-block"><div class="tb-title">Français</div><div class="tb-room">Salle 12</div></div></div>
+            <div class="tt-cell"><div class="tt-block math"><div class="tb-title">Mathématiques</div><div class="tb-room">Salle 12</div></div></div>
+            <div class="tt-cell"></div>
+            <div class="tt-cell"><div class="tt-block"><div class="tb-title">Histoire-Géo</div><div class="tb-room">Salle 12</div></div></div>
+            <div class="tt-cell"><div class="tt-block sci"><div class="tb-title">Sciences</div><div class="tb-room">Labo</div></div></div>
+
+            <div class="tt-time">14h</div>
+            <div class="tt-cell"><div class="tt-block"><div class="tb-title">Sport</div><div class="tb-room">Cour</div></div></div>
+            <div class="tt-cell"><div class="tt-block"><div class="tb-title">Anglais</div><div class="tb-room">Salle 12</div></div></div>
+            <div class="tt-cell"></div>
+            <div class="tt-cell"><div class="tt-block"><div class="tb-title">Anglais</div><div class="tb-room">Salle 12</div></div></div>
+            <div class="tt-cell"><div class="tt-block"><div class="tb-title">Arts</div><div class="tb-room">Salle 12</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRADES / BULLETINS -->
+    <div class="screen" id="grades">
+      <div class="topbar">
+        <div><h1>Notes & Bulletins</h1><div class="stamp">CM1 B · Trimestre 1 · Mathématiques</div></div>
+        <div class="top-actions"><button class="btn btn-ghost">Générer les bulletins</button><button class="btn btn-primary">Saisir des notes</button></div>
+      </div>
+      <div class="pad">
+        <div class="panel card-pad">
+          <div class="card-head"><h3>Moyennes de classe — Mathématiques</h3><div class="link">Exporter →</div></div>
+          <table>
+            <thead><tr><th>Élève</th><th>Devoir 1</th><th>Devoir 2</th><th>Composition</th><th>Moyenne</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>Divine A.</td><td>16</td><td>15</td><td>17</td><td>16,1</td><td><div class="grade-bar-wrap" style="width:90px;"><div class="grade-bar-track"><div class="grade-bar-fill" style="width:80%;"></div></div></div></td></tr>
+              <tr><td>Kévin H.</td><td>12</td><td>13</td><td>11</td><td>12,1</td><td><div class="grade-bar-wrap" style="width:90px;"><div class="grade-bar-track"><div class="grade-bar-fill mid" style="width:60%;"></div></div></div></td></tr>
+              <tr><td>Nadège S.</td><td>9</td><td>8</td><td>10</td><td>9,0</td><td><div class="grade-bar-wrap" style="width:90px;"><div class="grade-bar-track"><div class="grade-bar-fill low" style="width:45%;"></div></div></div></td></tr>
+              <tr><td>Elias L.</td><td>18</td><td>17</td><td>19</td><td>18,0</td><td><div class="grade-bar-wrap" style="width:90px;"><div class="grade-bar-track"><div class="grade-bar-fill" style="width:95%;"></div></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="screen" id="finance">
+      <div class="topbar">
+        <div><h1>Finances / Scolarité</h1><div class="stamp">École La Colombe — Primaire · Année 2026–2027</div></div>
+        <div class="top-actions"><button class="btn btn-ghost">Relancer les impayés</button><button class="btn btn-primary">+ Encaisser un paiement</button></div>
+      </div>
+      <div class="pad">
+        <div class="kpi-row">
+          <div class="stat-card"><div class="label">Attendu (année)</div><div class="num">98,4 M F</div></div>
+          <div class="stat-card"><div class="label">Recouvré</div><div class="num">86,6 M F</div><div class="delta up">88%</div></div>
+          <div class="stat-card"><div class="label">Impayés</div><div class="num">11,8 M F</div><div class="delta down">132 familles</div></div>
+          <div class="stat-card"><div class="label">Encaissé ce mois</div><div class="num">9,2 M F</div><div class="delta up">↑ 5%</div></div>
+        </div>
+        <div class="panel card-pad">
+          <div class="card-head"><h3>Paiements récents</h3><div class="link">Voir tout →</div></div>
+          <table>
+            <thead><tr><th>Élève</th><th>Classe</th><th>Tranche</th><th>Montant</th><th>Mode</th><th>Statut</th></tr></thead>
+            <tbody>
+              <tr><td>Divine A.</td><td>CM1 B</td><td>Tranche 1</td><td>85 000 F</td><td>Mobile Money</td><td><span class="pill ok"><span class="pill-dot"></span>Payé</span></td></tr>
+              <tr><td>Kévin H.</td><td>CE2 A</td><td>Tranche 1</td><td>85 000 F</td><td>Espèces</td><td><span class="pill ok"><span class="pill-dot"></span>Payé</span></td></tr>
+              <tr><td>Chloé V.</td><td>CE1 A</td><td>Tranche 1 & 2</td><td>0 F</td><td>—</td><td><span class="pill bad"><span class="pill-dot"></span>Impayé</span></td></tr>
+              <tr><td>Nadège S.</td><td>CP B</td><td>Tranche 1</td><td>40 000 F</td><td>Espèces</td><td><span class="pill warn"><span class="pill-dot"></span>Partiel</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMUNICATION -->
+    <div class="screen" id="comm">
+      <div class="topbar">
+        <div><h1>Communication</h1><div class="stamp">Messages avec les parents et le personnel</div></div>
+        <div class="top-actions"><button class="btn btn-primary">+ Message groupé</button></div>
+      </div>
+      <div class="pad">
+        <div class="panel" style="overflow:hidden;">
+          <div class="msg-layout">
+            <div class="thread-list">
+              <div class="thread-item sel"><div class="student-avatar" style="margin:0;">AF</div><div style="flex:1;min-width:0;"><div class="t-name">M. Ayéna F. (père de Divine)</div><div class="t-prev">D'accord, merci pour l'information</div></div><div class="t-time">10:14</div></div>
+              <div class="thread-item"><div class="student-avatar" style="margin:0;">RH</div><div style="flex:1;min-width:0;"><div class="t-name">Mme Houngbo R. (mère de Kévin)</div><div class="t-prev">Est-ce que le bulletin est prêt ?</div></div><div class="t-time">Hier</div></div>
+              <div class="thread-item"><div class="student-avatar" style="margin:0;">DS</div><div style="flex:1;min-width:0;"><div class="t-name">M. Soglo D. (père de Nadège)</div><div class="t-prev">Je passerai régler demain</div></div><div class="t-time">Hier</div></div>
+              <div class="thread-item"><div class="student-avatar" style="margin:0;">KA</div><div style="flex:1;min-width:0;"><div class="t-name">Mme Kponou A. (enseignante CM1 B)</div><div class="t-prev">Sortie pédagogique le 20/09</div></div><div class="t-time">Lun.</div></div>
+            </div>
+            <div class="msg-body">
+              <div class="msg-thread-head"><div class="mh-name">M. Ayéna F.</div><div class="mh-sub">Père de Divine A. — CM1 B</div></div>
+              <div class="msg-scroll">
+                <div class="bubble them">Bonjour, je voulais savoir si les frais de cantine sont inclus dans la tranche 1.</div>
+                <div class="bubble me">Bonjour M. Ayéna, non la cantine est facturée séparément chaque mois. Je vous envoie le détail.</div>
+                <div class="bubble them">D'accord, merci pour l'information</div>
+              </div>
+              <div class="msg-input"><input type="text" placeholder="Écrire un message…"><button class="btn btn-primary">Envoyer</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- ==================== PARENT PORTAL ==================== -->
+<div id="parent-app-shell" class="parent-shell" style="display:none;">
+  <div class="parent-header">
+    <div class="ph-brand">
+      <div class="brand-mark" style="background:linear-gradient(155deg,var(--sky-200),var(--sky-500));width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-weight:700;color:var(--ink-950);">G</div>
+      <div><div class="name">GESCOLA</div><div class="sub">Espace parent</div></div>
+    </div>
+    <div class="ph-user">
+      <div class="avatar" style="width:32px;height:32px;">FA</div>
+      <div style="font-size:13px;font-weight:600;">M. Ayéna F.</div>
+      <div class="ph-logout" onclick="backToLogin()">Déconnexion</div>
+    </div>
+  </div>
+
+  <div class="parent-body">
+    <div class="child-switch">
+      <div class="child-pill sel" data-child="divine">
+        <div class="cp-avatar">DA</div>
+        <div><div class="cp-name">Divine A.</div><div class="cp-meta">CM1 B · Primaire</div></div>
+      </div>
+      <div class="child-pill" data-child="ismael">
+        <div class="cp-avatar">IA</div>
+        <div><div class="cp-name">Ismaël A.</div><div class="cp-meta">6ème A · Secondaire</div></div>
+      </div>
+    </div>
+
+    <div class="parent-tabs">
+      <div class="ptab active" data-pscreen="p-overview">Vue d'ensemble</div>
+      <div class="ptab" data-pscreen="p-grades">Notes & Bulletins</div>
+      <div class="ptab" data-pscreen="p-finance">Finances</div>
+      <div class="ptab" data-pscreen="p-notifs">Notifications</div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="pscreen active" id="p-overview">
+      <div class="hero-row" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="stat-card"><div class="label">Moyenne générale</div><div class="num">15,2 / 20</div><div class="delta up">↑ 0,8 pt ce trimestre</div></div>
+        <div class="stat-card"><div class="label">Assiduité</div><div class="num">97%</div><div class="delta up">1 absence justifiée</div></div>
+        <div class="stat-card"><div class="label">Prochain paiement</div><div class="num">40 000 F</div><div class="delta down">Échéance le 30/09</div></div>
+      </div>
+      <div class="panel card-pad" style="margin-top:16px;">
+        <div class="card-head"><h3>Dernières notifications</h3><div class="link" onclick="document.querySelector('.ptab[data-pscreen=p-notifs]').click()">Voir tout →</div></div>
+        <div class="notif-item">
+          <div class="notif-dot"></div>
+          <div><span class="ni-tag result">Résultats</span><div class="ni-title">Note de Mathématiques ajoutée</div><div class="ni-body">Composition trimestre 1 : 17/20</div><div class="ni-time">Aujourd'hui, 09:40</div></div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-dot"></div>
+          <div><span class="ni-tag finance">Finance</span><div class="ni-title">Rappel d'échéance</div><div class="ni-body">Tranche 2 à régler avant le 30/09</div><div class="ni-time">Hier, 16:12</div></div>
+        </div>
+        <div class="notif-item read">
+          <div class="notif-dot"></div>
+          <div><span class="ni-tag info">Info établissement</span><div class="ni-title">Sortie pédagogique CM1 B</div><div class="ni-body">Prévue le 20/09, autorisation à signer</div><div class="ni-time">Lun. 14:05</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRADES -->
+    <div class="pscreen" id="p-grades">
+      <div class="panel card-pad">
+        <div class="card-head"><h3>Divine A. — Trimestre 1</h3><div class="link">Télécharger le bulletin →</div></div>
+        <table>
+          <thead><tr><th>Matière</th><th>Devoir 1</th><th>Devoir 2</th><th>Composition</th><th>Moyenne</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Mathématiques</td><td>16</td><td>15</td><td>17</td><td>16,1</td><td><div class="grade-bar-wrap" style="width:90px;"><div class="grade-bar-track"><div class="grade-bar-fill" style="width:80%;"></div></div></div></td></tr>
+            <tr><td>Français</td><td>14</td><td>15</td><td>13</td><td>14,0</td><td><div class="grade-bar-wrap" style="width:90px;"><div class="grade-bar-track"><div class="grade-bar-fill" style="width:70%;"></div></div></div></td></tr>
+            <tr><td>Sciences</td><td>12</td><td>13</td><td>14</td><td>13,0</td><td><div class="grade-bar-wrap" style="width:90px;"><div class="grade-bar-track"><div class="grade-bar-fill mid" style="width:65%;"></div></div></div></td></tr>
+            <tr><td>Anglais</td><td>17</td><td>16</td><td>18</td><td>17,0</td><td><div class="grade-bar-wrap" style="width:90px;"><div class="grade-bar-track"><div class="grade-bar-fill" style="width:85%;"></div></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="pscreen" id="p-finance">
+      <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card"><div class="label">Total dû (année)</div><div class="num">340 000 F</div></div>
+        <div class="stat-card"><div class="label">Déjà réglé</div><div class="num">85 000 F</div><div class="delta up">25%</div></div>
+        <div class="stat-card"><div class="label">Prochaine échéance</div><div class="num">40 000 F</div><div class="delta down">30/09/2026</div></div>
+      </div>
+      <div class="panel card-pad">
+        <div class="card-head"><h3>Historique des paiements</h3></div>
+        <table>
+          <thead><tr><th>Date</th><th>Tranche</th><th>Montant</th><th>Mode</th><th>Statut</th></tr></thead>
+          <tbody>
+            <tr><td>05/09/2026</td><td>Tranche 1</td><td>85 000 F</td><td>Mobile Money</td><td><span class="pill ok"><span class="pill-dot"></span>Payé</span></td></tr>
+            <tr><td>—</td><td>Tranche 2</td><td>40 000 F</td><td>—</td><td><span class="pill warn"><span class="pill-dot"></span>À venir</span></td></tr>
+          </tbody>
+        </table>
+        <button class="btn btn-accent" style="margin-top:18px;">Payer maintenant</button>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="pscreen" id="p-notifs">
+      <div class="panel card-pad">
+        <div class="notif-item">
+          <div class="notif-dot"></div>
+          <div><span class="ni-tag result">Résultats</span><div class="ni-title">Note de Mathématiques ajoutée</div><div class="ni-body">Composition trimestre 1 : 17/20 pour Divine A.</div><div class="ni-time">Aujourd'hui, 09:40</div></div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-dot"></div>
+          <div><span class="ni-tag finance">Finance</span><div class="ni-title">Rappel d'échéance</div><div class="ni-body">Tranche 2 (40 000 F) à régler avant le 30/09 pour Divine A.</div><div class="ni-time">Hier, 16:12</div></div>
+        </div>
+        <div class="notif-item read">
+          <div class="notif-dot"></div>
+          <div><span class="ni-tag info">Info établissement</span><div class="ni-title">Sortie pédagogique CM1 B</div><div class="ni-body">Prévue le 20/09, autorisation parentale à signer avant le 18/09</div><div class="ni-time">Lun. 14:05</div></div>
+        </div>
+        <div class="notif-item read">
+          <div class="notif-dot"></div>
+          <div><span class="ni-tag finance">Finance</span><div class="ni-title">Paiement confirmé</div><div class="ni-body">Tranche 1 (85 000 F) reçue avec succès</div><div class="ni-time">05/09, 11:20</div></div>
+        </div>
+        <div class="notif-item read">
+          <div class="notif-dot"></div>
+          <div><span class="ni-tag info">Info établissement</span><div class="ni-title">Réunion parents-professeurs</div><div class="ni-body">Le 25/09 à 17h, salle polyvalente</div><div class="ni-time">02/09, 08:30</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen-switch-note"><span class="dot"></span>Maquette interactive — cliquez sur le menu à gauche</div>
+
+<script>
+function switchLoginTab(tab){
+  document.getElementById('tab-staff').classList.toggle('active', tab==='staff');
+  document.getElementById('tab-parent').classList.toggle('active', tab==='parent');
+  document.getElementById('staff-login-form').style.display = tab==='staff' ? 'block' : 'none';
+  document.getElementById('parent-login-form').style.display = tab==='parent' ? 'block' : 'none';
+}
+function goToParentApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('parent-app-shell').style.display='block';
+}
+function backToLogin(){
+  document.getElementById('parent-app-shell').style.display='none';
+  document.getElementById('app-shell').style.display='none';
+  document.getElementById('login-screen').style.display='block';
+}
+document.querySelectorAll('.child-pill').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    document.querySelectorAll('.child-pill').forEach(c=>c.classList.remove('sel'));
+    el.classList.add('sel');
+  });
+});
+document.querySelectorAll('.ptab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.pscreen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(tab.dataset.pscreen).classList.add('active');
+  });
+});
+function goToApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-shell').style.display='block';
+}
+document.querySelectorAll('.nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(btn.dataset.screen).classList.add('active');
+  });
+});
+document.querySelectorAll('.filters .chip').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+  });
+});
+document.querySelectorAll('.thread-item').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    document.querySelectorAll('.thread-item').forEach(t=>t.classList.remove('sel'));
+    el.classList.add('sel');
+  });
+});
+</script>
+
+</body>
+</html>
