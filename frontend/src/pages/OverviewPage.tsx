@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
+import SuperAdminPage from "./SuperAdminPage";
 
 interface Student {
   id: string;
@@ -49,6 +50,7 @@ export default function OverviewPage() {
 
   if (user?.role === "parent") return <ParentOverview />;
   if (user?.role === "network_admin") return <NetworkOverview />;
+  if (user?.role === "super_admin") return <SuperAdminPage />;
   return <StaffOverview />;
 }
 

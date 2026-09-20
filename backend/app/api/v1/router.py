@@ -1,14 +1,15 @@
 from fastapi import APIRouter
 
 from app.api.v1 import (
-    academic, attendance, audit, auth, canteen, finance, grades, guardian, library, networks, notifications, reports,
-    tenants, users,
+    academic, attendance, audit, auth, billing, canteen, finance, grades, guardian, library, networks,
+    notifications, reports, tenants, users,
 )
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
 api_router.include_router(tenants.router)
 api_router.include_router(networks.router)
+api_router.include_router(billing.router)
 api_router.include_router(users.router)
 api_router.include_router(academic.router)
 api_router.include_router(grades.router)

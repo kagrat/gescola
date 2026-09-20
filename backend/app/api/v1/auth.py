@@ -10,8 +10,10 @@ from app.schemas.auth import (
     LoginRequest, LoginResponse, MfaConfirmRequest, MfaDisableRequest, MfaLoginVerifyRequest,
     MfaSetupResponse, RefreshRequest, TokenPair,
 )
+from app.schemas.signup import SignupRequest, SignupResponse
 from app.services.auth_service import authenticate, complete_mfa_login, issue_mfa_pending_token, issue_token_pair, rotate_refresh_token
 from app.services.mfa_service import confirm_mfa_setup, disable_mfa, start_mfa_setup
+from app.services.signup_service import signup as signup_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
@@ -46,6 +48,22 @@ def mfa_login_verify(request: Request, payload: MfaLoginVerifyRequest, db: Sessi
 def refresh(request: Request, payload: RefreshRequest, db: Session = Depends(get_db)) -> TokenPair:
     access, refresh_token = rotate_refresh_token(db, payload.refresh_token)
     return TokenPair(access_token=access, refresh_token=refresh_token)
+
+
+@router.post("/signup", response_model=SignupResponse, status_code=201)
+@limiter.limit("3/hour")
+def signup_endpoint(request: Request, payload: SignupRequest, db: Session = Depends(get_db)) -> SignupResponse:
+    """Inscription en libre-service : crée l'établissement, son compte
+    Direction et démarre l'essai gratuit. Limité à 3 inscriptions par heure
+    et par adresse IP — un seuil bas assumé pour un endpoint public non
+    protégé par CAPTCHA (aucun service de CAPTCHA réel n'est intégré dans ce
+    livrable, voir README) : mieux vaut freiner un usage légitime en rafale
+    que laisser un script créer des dizaines d'établissements factices."""
+    access, refresh_token, tenant, subscription = signup_service(db, payload)
+    return SignupResponse(
+        access_token=access, refresh_token=refresh_token, tenant_id=str(tenant.id),
+        trial_ends_at=subscription.trial_ends_at.isoformat(),
+    )
 
 
 @router.get("/me")

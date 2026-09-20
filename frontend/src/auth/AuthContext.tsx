@@ -29,8 +29,16 @@ interface AuthState {
   error: string | null;
   login: (email: string, password: string) => Promise<LoginResult>;
   verifyMfa: (mfaToken: string, code: string) => Promise<void>;
+  signup: (data: SignupData) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+}
+
+interface SignupData {
+  school_name: string;
+  admin_full_name: string;
+  admin_email: string;
+  admin_password: string;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -93,8 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function setErrorFromException(e: unknown) {
-    if (e instanceof ApiError) {
+  function setErrorFromException(e: unknown) {    if (e instanceof ApiError) {
       if (e.status === 423) setError("Compte temporairement verrouillé suite à plusieurs échecs. Réessayez plus tard.");
       else if (e.status === 429) setError("Trop de tentatives. Merci de patienter avant de réessayer.");
       else if (e.status === 401) setError("Code invalide ou identifiants incorrects.");
@@ -104,13 +111,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function signup(data: SignupData) {
+    setError(null);
+    try {
+      const resp = await api.post<{ access_token: string; refresh_token: string }>("/auth/signup", data);
+      setTokens(resp.access_token, resp.refresh_token);
+      await loadMe();
+    } catch (e) {
+      setErrorFromException(e);
+      throw e;
+    }
+  }
+
   function logout() {
     setTokens(null, null);
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, verifyMfa, logout, refreshUser: loadMe }}>
+    <AuthContext.Provider value={{ user, loading, error, login, verifyMfa, signup, logout, refreshUser: loadMe }}>
       {children}
     </AuthContext.Provider>
   );

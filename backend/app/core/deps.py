@@ -78,9 +78,16 @@ def require_roles(*allowed_roles: UserRole):
 
 def get_tenant_db(current_user: CurrentUser = Depends(get_current_user)):
     """Session DB dont le contexte RLS est déjà positionné pour le tenant de
-    l'utilisateur courant. À utiliser dans tous les endpoints scoped-tenant."""
+    l'utilisateur courant. À utiliser dans tous les endpoints scoped-tenant.
+
+    Vérifie aussi que l'abonnement plateforme de l'établissement n'est pas
+    suspendu (voir platform_billing_service.check_tenant_access) — un
+    établissement sans abonnement suivi n'est pas concerné (grandfathering)."""
     db: Session = SessionLocal()
     try:
+        if current_user.tenant_id:
+            from app.services.platform_billing_service import check_tenant_access
+            check_tenant_access(db, current_user.tenant_id)
         set_tenant_context(db, str(current_user.tenant_id) if current_user.tenant_id else None)
         yield db
     finally:

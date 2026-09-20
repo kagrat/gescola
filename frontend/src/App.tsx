@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
 import DashboardLayout from "./pages/DashboardLayout";
 import OverviewPage from "./pages/OverviewPage";
 import StudentsPage from "./pages/StudentsPage";
@@ -13,6 +14,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import AuditLogPage from "./pages/AuditLogPage";
 import CanteenPage from "./pages/CanteenPage";
 import LibraryPage from "./pages/LibraryPage";
+import TenantBillingPage from "./pages/TenantBillingPage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -27,6 +29,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/connexion" element={<LoginPage />} />
+          <Route path="/inscription" element={<SignupPage />} />
           <Route
             path="/"
             element={
@@ -46,6 +49,7 @@ export default function App() {
             <Route path="audit" element={<AuditLogPage />} />
             <Route path="cantine" element={<CanteenPage />} />
             <Route path="bibliotheque" element={<LibraryPage />} />
+            <Route path="etablissements/:tenantId" element={<TenantBillingPage />} />
           </Route>
         </Routes>
       </AuthProvider>

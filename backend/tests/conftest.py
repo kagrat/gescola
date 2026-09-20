@@ -45,6 +45,7 @@ def reset_rate_limiter():
     yield
 
 TABLES_TO_CLEAN = [
+    "platform_payments", "platform_invoices", "subscriptions", "platform_plans",
     "loans", "books", "canteen_subscriptions", "canteen_plans",
     "notifications", "guardian_links", "payments", "invoices", "attendances", "grades", "audit_logs",
     "refresh_tokens", "students", "subjects", "school_classes", "users", "tenants", "school_networks",
@@ -54,13 +55,27 @@ TABLES_TO_CLEAN = [
 @pytest.fixture(autouse=True)
 def clean_db():
     """Vide toutes les tables avant chaque test pour garantir l'isolation des
-    scénarios (les tests ne doivent jamais dépendre de l'ordre d'exécution)."""
+    scénarios (les tests ne doivent jamais dépendre de l'ordre d'exécution).
+
+    platform_plans est réensemencé avec le plan d'essai gratuit par défaut
+    juste après troncature (exactement comme le fait la migration en
+    production) : plusieurs services (signup, démarrage d'abonnement)
+    en dépendent, et le tronquer sans le recréer casserait tous les tests
+    qui en découlent — l'accumulation de plans de test d'un lancement à
+    l'autre était elle-même un bug d'isolation, corrigé ici."""
     db = SessionLocal()
     try:
         # TRUNCATE ... CASCADE gère l'ordre des clés étrangères sans nécessiter
         # de privilège superuser (contrairement à session_replication_role,
         # réservé au rôle propriétaire de la base en environnement managé).
         db.execute(text("TRUNCATE TABLE " + ", ".join(TABLES_TO_CLEAN) + " CASCADE"))
+        db.execute(
+            text(
+                "INSERT INTO platform_plans (id, name, code, price_per_month, max_students, "
+                "is_default_trial_plan, is_active, created_at, updated_at) "
+                "VALUES (gen_random_uuid(), 'Essai gratuit', 'essai-gratuit', 0, 100, true, true, now(), now())"
+            )
+        )
         db.commit()
     finally:
         db.close()
