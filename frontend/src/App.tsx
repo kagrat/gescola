@@ -17,6 +17,10 @@ import LibraryPage from "./pages/LibraryPage";
 import TenantBillingPage from "./pages/TenantBillingPage";
 import EstablishmentSettingsPage from "./pages/EstablishmentSettingsPage";
 import ProfilePage from "./pages/ProfilePage";
+import AcademicPage from "./pages/AcademicPage";
+import TeachingPage from "./pages/TeachingPage";
+import TimetablePage from "./pages/TimetablePage";
+import MyTimetablePage from "./pages/MyTimetablePage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -54,6 +58,10 @@ export default function App() {
             <Route path="etablissements/:tenantId" element={<TenantBillingPage />} />
             <Route path="parametres" element={<EstablishmentSettingsPage />} />
             <Route path="profil" element={<ProfilePage />} />
+            <Route path="classes-matieres" element={<AcademicPage />} />
+            <Route path="affectations" element={<TeachingPage />} />
+            <Route path="emploi-du-temps" element={<TimetablePage />} />
+            <Route path="mon-emploi-du-temps" element={<MyTimetablePage />} />
           </Route>
         </Routes>
       </AuthProvider>

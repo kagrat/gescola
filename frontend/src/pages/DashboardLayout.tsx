@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import {
   LayoutGrid, Users, GraduationCap, Wallet, ShieldCheck, Bell, ScrollText, UtensilsCrossed, Library as LibraryIcon,
-  Settings, UserCircle,
+  Settings, UserCircle, BookOpen, CalendarDays, CalendarClock,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
@@ -40,6 +40,16 @@ function navItemsFor(role: string) {
 
   if (["school_admin", "staff", "teacher", "censor", "supervisor"].includes(role)) {
     items.push({ to: "/eleves", label: "Élèves", icon: Users });
+  }
+  if (["school_admin", "staff", "teacher", "censor", "supervisor"].includes(role)) {
+    items.push({ to: "/classes-matieres", label: "Classes & Matières", icon: BookOpen });
+  }
+  if (["school_admin", "censor"].includes(role)) {
+    items.push({ to: "/affectations", label: "Affectations", icon: CalendarClock });
+    items.push({ to: "/emploi-du-temps", label: "Emploi du temps", icon: CalendarDays });
+  }
+  if (role === "teacher") {
+    items.push({ to: "/mon-emploi-du-temps", label: "Mon emploi du temps", icon: CalendarDays });
   }
   if (["school_admin", "staff"].includes(role)) {
     items.push({ to: "/bibliotheque", label: "Bibliothèque", icon: LibraryIcon });

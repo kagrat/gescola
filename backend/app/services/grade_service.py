@@ -8,21 +8,38 @@ from sqlalchemy.orm import Session
 
 from app.models.academic import Subject
 from app.models.grade import Grade
+from app.models.user import UserRole
 from app.schemas.academic import StudentCreate  # noqa: F401  (import conservé pour cohérence de module)
 from app.schemas.grade import GradeCreate, StudentAverageOut
 from app.services.academic_service import get_student_or_404
 from app.services.audit_service import log_action
+from app.services.teaching_service import is_teacher_assigned, teacher_has_any_assignment
 
 
-def create_grade(db: Session, *, tenant_id: uuid.UUID, teacher_id: uuid.UUID, data: GradeCreate) -> Grade:
+def create_grade(
+    db: Session, *, tenant_id: uuid.UUID, teacher_id: uuid.UUID, actor_role: UserRole, data: GradeCreate
+) -> Grade:
     # Vérifie que l'élève appartient bien au même établissement (lève 404 sinon).
-    get_student_or_404(db, tenant_id=tenant_id, student_id=data.student_id)
+    student = get_student_or_404(db, tenant_id=tenant_id, student_id=data.student_id)
 
     subject = db.execute(
         select(Subject).where(Subject.id == data.subject_id, Subject.tenant_id == tenant_id)
     ).scalar_one_or_none()
     if subject is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Matière introuvable.")
+
+    # Un enseignant ayant AU MOINS UNE affectation enregistrée ne peut noter
+    # que ses classes/matières assignées — un enseignant sans aucune
+    # affectation reste non restreint (grandfathering, voir TeacherAssignment).
+    # La Direction (SCHOOL_ADMIN) n'est jamais restreinte : elle doit pouvoir
+    # saisir une note pour n'importe quelle classe en cas de besoin.
+    if actor_role == UserRole.TEACHER and student.class_id is not None:
+        if teacher_has_any_assignment(db, tenant_id=tenant_id, teacher_id=teacher_id):
+            if not is_teacher_assigned(db, tenant_id=tenant_id, teacher_id=teacher_id, class_id=student.class_id, subject_id=data.subject_id):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Vous n'êtes pas affecté à cette classe pour cette matière.",
+                )
 
     grade = Grade(
         tenant_id=tenant_id,

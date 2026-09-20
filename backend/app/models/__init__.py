@@ -8,6 +8,8 @@ from app.models.notification import Notification, NotificationType  # noqa: F401
 from app.models.canteen import CanteenPlan, CanteenSubscription, CanteenSubscriptionStatus  # noqa: F401
 from app.models.library import Book, Loan  # noqa: F401
 from app.models.school_network import SchoolNetwork  # noqa: F401
+from app.models.teaching import TeacherAssignment  # noqa: F401
+from app.models.timetable import TimetableSlot, Weekday  # noqa: F401
 from app.models.billing import (  # noqa: F401
     PlatformInvoice, PlatformInvoiceStatus, PlatformPayment, PlatformPaymentMethod, PlatformPlan,
     Subscription, SubscriptionStatus,

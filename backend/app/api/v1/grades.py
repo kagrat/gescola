@@ -29,7 +29,7 @@ def create_grade_endpoint(
     db: Session = Depends(get_tenant_db),
     current_user: CurrentUser = Depends(require_roles(*CAN_WRITE_GRADES)),
 ) -> GradeOut:
-    return create_grade(db, tenant_id=current_user.tenant_id, teacher_id=current_user.id, data=payload)
+    return create_grade(db, tenant_id=current_user.tenant_id, teacher_id=current_user.id, actor_role=current_user.role, data=payload)
 
 
 @router.get("/students/{student_id}/grades", response_model=list[GradeOut])

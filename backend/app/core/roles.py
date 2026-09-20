@@ -63,6 +63,11 @@ CAN_MANAGE_FINANCE = (UserRole.SCHOOL_ADMIN, UserRole.ACCOUNTANT)
 # Rattachement d'un compte parent à un élève : direction + secrétariat (acte administratif).
 CAN_MANAGE_GUARDIAN_LINKS = (UserRole.SCHOOL_ADMIN, UserRole.STAFF)
 
+# Coordination pédagogique : affectations enseignant/classe/matière et emploi
+# du temps — rôle traditionnellement porté par le censeur (« censeur des
+# études ») en plus de la direction.
+CAN_MANAGE_TEACHING = (UserRole.SCHOOL_ADMIN, UserRole.CENSOR)
+
 # Rôles internes à l'établissement pouvant être créés par la direction via /users
 # (le Super Admin n'est jamais créé depuis un établissement — voir user_service).
 TENANT_INTERNAL_ROLES = (
