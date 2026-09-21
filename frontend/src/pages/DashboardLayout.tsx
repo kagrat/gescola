@@ -49,6 +49,7 @@ function navItemsFor(role: string) {
     items.push({ to: "/emploi-du-temps", label: "Emploi du temps", icon: CalendarDays });
   }
   if (role === "teacher") {
+    items.push({ to: "/mes-classes", label: "Mes classes", icon: BookOpen });
     items.push({ to: "/mon-emploi-du-temps", label: "Mon emploi du temps", icon: CalendarDays });
   }
   if (["school_admin", "staff"].includes(role)) {
@@ -61,6 +62,7 @@ function navItemsFor(role: string) {
     items.push({ to: "/rapports", label: "Rapports", icon: GraduationCap });
     items.push({ to: "/personnel", label: "Personnel", icon: Wallet });
     items.push({ to: "/parametres", label: "Paramètres établissement", icon: Settings });
+    items.push({ to: "/abonnement", label: "Mon abonnement", icon: Wallet });
     items.push({ to: "/audit", label: "Journal d'audit", icon: ScrollText });
   }
   items.push({ to: "/profil", label: "Profil", icon: UserCircle });

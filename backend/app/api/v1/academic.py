@@ -6,10 +6,11 @@ from sqlalchemy.orm import Session
 from app.core.deps import CurrentUser, get_tenant_db, require_roles
 from app.core.roles import CAN_MANAGE_REGISTRY, CAN_READ_REGISTRY
 from app.schemas.academic import (
-    SchoolClassCreate, SchoolClassOut, StudentCreate, StudentOut, SubjectCreate, SubjectOut,
+    SchoolClassCreate, SchoolClassOut, StudentCreate, StudentOut, StudentUpdate, SubjectCreate, SubjectOut,
 )
 from app.services.academic_service import (
     create_class, create_student, create_subject, get_student_or_404, list_classes, list_students, list_subjects,
+    update_student,
 )
 
 router = APIRouter(tags=["academic"])
@@ -75,3 +76,13 @@ def get_student_endpoint(
     current_user: CurrentUser = Depends(require_roles(*CAN_READ_REGISTRY)),
 ) -> StudentOut:
     return get_student_or_404(db, tenant_id=current_user.tenant_id, student_id=student_id)
+
+
+@router.patch("/students/{student_id}", response_model=StudentOut)
+def update_student_endpoint(
+    student_id: uuid.UUID,
+    payload: StudentUpdate,
+    db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_REGISTRY)),
+) -> StudentOut:
+    return update_student(db, tenant_id=current_user.tenant_id, student_id=student_id, data=payload)

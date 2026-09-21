@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.academic import SchoolClass, Subject
 from app.models.student import Student
-from app.schemas.academic import SchoolClassCreate, StudentCreate, SubjectCreate
+from app.schemas.academic import SchoolClassCreate, StudentCreate, StudentUpdate, SubjectCreate
 
 
 def create_class(db: Session, *, tenant_id: uuid.UUID, data: SchoolClassCreate) -> SchoolClass:
@@ -64,6 +64,18 @@ def create_student(db: Session, *, tenant_id: uuid.UUID, data: StudentCreate) ->
 
 def list_students(db: Session, *, tenant_id: uuid.UUID) -> list[Student]:
     return list(db.execute(select(Student).where(Student.tenant_id == tenant_id)).scalars().all())
+
+
+def update_student(db: Session, *, tenant_id: uuid.UUID, student_id: uuid.UUID, data: StudentUpdate) -> Student:
+    student = get_student_or_404(db, tenant_id=tenant_id, student_id=student_id)
+    updates = data.model_dump(exclude_unset=True)
+    if "class_id" in updates and updates["class_id"] is not None:
+        _get_class_or_404(db, tenant_id=tenant_id, class_id=updates["class_id"])  # empêche le rattachement inter-tenant
+    for field, value in updates.items():
+        setattr(student, field, value)
+    db.commit()
+    db.refresh(student)
+    return student
 
 
 def get_student_or_404(db: Session, *, tenant_id: uuid.UUID, student_id: uuid.UUID) -> Student:

@@ -8,6 +8,7 @@ interface Tenant {
   name: string;
   code: string;
   is_active: boolean;
+  network_id: string | null;
 }
 
 interface Plan {
@@ -26,6 +27,12 @@ interface Subscription {
   effective_status: string;
 }
 
+interface SchoolNetwork {
+  id: string;
+  name: string;
+  code: string;
+}
+
 const STATUS_LABELS: Record<string, { label: string; tone: "ok" | "warn" | "bad" | "neutral" }> = {
   trialing: { label: "Essai en cours", tone: "warn" },
   active: { label: "Actif", tone: "ok" },
@@ -38,10 +45,16 @@ export default function SuperAdminPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscriptions, setSubscriptions] = useState<Record<string, Subscription | null>>({});
+  const [networks, setNetworks] = useState<SchoolNetwork[]>([]);
   const [showTenantForm, setShowTenantForm] = useState(false);
   const [showPlanForm, setShowPlanForm] = useState(false);
+  const [showNetworkForm, setShowNetworkForm] = useState(false);
+  const [adminFormForNetwork, setAdminFormForNetwork] = useState<string | null>(null);
   const [tenantError, setTenantError] = useState<string | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
+  const [networkError, setNetworkError] = useState<string | null>(null);
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [adminSuccess, setAdminSuccess] = useState<string | null>(null);
 
   function reload() {
     api.get<Tenant[]>("/tenants").then((list) => {
@@ -54,6 +67,7 @@ export default function SuperAdminPage() {
       });
     });
     api.get<Plan[]>("/platform/plans").then(setPlans);
+    api.get<SchoolNetwork[]>("/networks").then(setNetworks);
   }
   useEffect(reload, []);
 
@@ -92,6 +106,41 @@ export default function SuperAdminPage() {
     } catch (err) {
       setPlanError(err instanceof ApiError ? err.message : "Impossible de créer ce plan.");
     }
+  }
+
+  async function handleCreateNetwork(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setNetworkError(null);
+    const form = new FormData(e.currentTarget);
+    try {
+      await api.post("/networks", { name: form.get("name"), code: form.get("code") });
+      setShowNetworkForm(false);
+      reload();
+    } catch (err) {
+      setNetworkError(err instanceof ApiError ? err.message : "Impossible de créer ce réseau.");
+    }
+  }
+
+  async function handleCreateNetworkAdmin(e: FormEvent<HTMLFormElement>, networkId: string) {
+    e.preventDefault();
+    setAdminError(null);
+    setAdminSuccess(null);
+    const form = new FormData(e.currentTarget);
+    try {
+      await api.post(`/networks/${networkId}/admins`, {
+        full_name: form.get("full_name"), email: form.get("email"), password: form.get("password"),
+      });
+      setAdminSuccess("Compte promoteur créé.");
+      setAdminFormForNetwork(null);
+    } catch (err) {
+      setAdminError(err instanceof ApiError ? err.message : "Impossible de créer ce compte.");
+    }
+  }
+
+  async function handleAssignTenant(tenantId: string, networkId: string) {
+    if (!networkId) return;
+    await api.post(`/networks/${networkId}/tenants/${tenantId}`);
+    reload();
   }
 
   const activeSubs = Object.values(subscriptions).filter((s): s is Subscription => !!s);
@@ -153,12 +202,13 @@ export default function SuperAdminPage() {
                   <Th>Code</Th>
                   <Th>Abonnement</Th>
                   <Th>Plan</Th>
+                  <Th>Réseau</Th>
                   <Th></Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {tenants.length === 0 && (
-                  <tr><td colSpan={5} className="px-5 py-6 text-ink/40">Aucun établissement pour l'instant.</td></tr>
+                  <tr><td colSpan={6} className="px-5 py-6 text-ink/40">Aucun établissement pour l'instant.</td></tr>
                 )}
                 {tenants.map((t) => {
                   const sub = subscriptions[t.id];
@@ -173,6 +223,20 @@ export default function SuperAdminPage() {
                         {statusInfo && <StatusPill label={statusInfo.label} tone={statusInfo.tone} />}
                       </td>
                       <td className="px-5 py-3 text-ink/60">{sub ? sub.plan.name : "—"}</td>
+                      <td className="px-5 py-3">
+                        {t.network_id ? (
+                          <span className="text-ink/60">{networks.find((n) => n.id === t.network_id)?.name ?? "—"}</span>
+                        ) : (
+                          <select
+                            defaultValue=""
+                            onChange={(e) => handleAssignTenant(t.id, e.target.value)}
+                            className="rounded border border-line bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy"
+                          >
+                            <option value="">— Rattacher —</option>
+                            {networks.map((n) => <option key={n.id} value={n.id}>{n.name}</option>)}
+                          </select>
+                        )}
+                      </td>
                       <td className="px-5 py-3 text-right">
                         <Link to={`/etablissements/${t.id}`} className="text-navy text-sm underline underline-offset-2 hover:text-navy-light">
                           Gérer →
@@ -233,6 +297,69 @@ export default function SuperAdminPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <section className="mt-10 mb-16">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg text-ink">Réseaux</h2>
+            <button
+              onClick={() => setShowNetworkForm((v) => !v)}
+              className="rounded border border-navy text-navy text-sm font-medium px-4 py-2 hover:bg-navy/5 transition"
+            >
+              {showNetworkForm ? "Annuler" : "Nouveau réseau"}
+            </button>
+          </div>
+          <p className="text-sm text-ink/55 mt-1">
+            Regroupe plusieurs établissements sous un même promoteur, avec une vue consolidée en lecture seule.
+          </p>
+
+          {showNetworkForm && (
+            <form onSubmit={handleCreateNetwork} className="mt-4 border border-line rounded bg-white p-5 grid sm:grid-cols-3 gap-4">
+              <TextField name="name" label="Nom du réseau" placeholder="Groupe Scolaire La Colombe" required />
+              <TextField name="code" label="Code" placeholder="groupe-colombe" required />
+              {networkError && <p className="sm:col-span-3 text-sm text-brick">{networkError}</p>}
+              <div className="sm:col-span-3">
+                <button type="submit" className="rounded bg-ochre text-navy-deep text-sm font-medium px-4 py-2 hover:bg-ochre-dark transition">
+                  Créer le réseau
+                </button>
+              </div>
+            </form>
+          )}
+
+          {adminSuccess && <p className="mt-3 text-sm text-pass">{adminSuccess}</p>}
+
+          <div className="mt-4 space-y-3">
+            {networks.length === 0 && <p className="text-sm text-ink/40">Aucun réseau pour l'instant.</p>}
+            {networks.map((n) => (
+              <div key={n.id} className="border border-line rounded bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-ink">{n.name}</p>
+                    <p className="text-xs text-ink/40 mt-0.5">{n.code}</p>
+                  </div>
+                  <button
+                    onClick={() => setAdminFormForNetwork(adminFormForNetwork === n.id ? null : n.id)}
+                    className="text-navy text-sm underline underline-offset-2 hover:text-navy-light"
+                  >
+                    {adminFormForNetwork === n.id ? "Annuler" : "+ Compte promoteur"}
+                  </button>
+                </div>
+                {adminFormForNetwork === n.id && (
+                  <form onSubmit={(e) => handleCreateNetworkAdmin(e, n.id)} className="mt-4 pt-4 border-t border-line grid sm:grid-cols-3 gap-3">
+                    <TextField name="full_name" label="Nom complet" placeholder="M. Le Promoteur" required />
+                    <TextField name="email" label="E-mail" type="email" required />
+                    <TextField name="password" label="Mot de passe provisoire" type="password" required />
+                    {adminError && <p className="sm:col-span-3 text-sm text-brick">{adminError}</p>}
+                    <div className="sm:col-span-3">
+                      <button type="submit" className="rounded bg-ochre text-navy-deep text-sm font-medium px-4 py-2 hover:bg-ochre-dark transition">
+                        Créer le compte
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            ))}
           </div>
         </section>
       </div>

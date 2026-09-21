@@ -106,3 +106,45 @@ def test_student_cannot_be_attached_to_class_of_another_tenant(client, make_tena
         headers=auth_headers(staff_a, pwd_a),
     )
     assert resp.status_code == 404
+
+
+def test_update_student_class_assignment(client, make_tenant, make_user, auth_headers):
+    tenant = make_tenant()
+    staff, pwd = make_user(tenant=tenant, role=UserRole.STAFF)
+    headers = auth_headers(staff, pwd)
+
+    student = client.post("/api/v1/students", json={"first_name": "A", "last_name": "B"}, headers=headers).json()
+    assert student["class_id"] is None
+
+    class_a = client.post("/api/v1/classes", json={"name": "6ème A", "level": "6ème"}, headers=headers).json()
+    resp = client.patch(f"/api/v1/students/{student['id']}", json={"class_id": class_a["id"]}, headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["class_id"] == class_a["id"]
+
+    get_resp = client.get(f"/api/v1/students/{student['id']}", headers=headers)
+    assert get_resp.json()["class_id"] == class_a["id"]
+
+
+def test_update_student_rejects_class_of_another_tenant(client, make_tenant, make_user, auth_headers):
+    tenant_a = make_tenant()
+    tenant_b = make_tenant()
+    staff_a, pwd_a = make_user(tenant=tenant_a, role=UserRole.STAFF)
+    staff_b, pwd_b = make_user(tenant=tenant_b, role=UserRole.STAFF)
+
+    student = client.post("/api/v1/students", json={"first_name": "A", "last_name": "B"}, headers=auth_headers(staff_a, pwd_a)).json()
+    class_b = client.post("/api/v1/classes", json={"name": "6ème A", "level": "6ème"}, headers=auth_headers(staff_b, pwd_b)).json()
+
+    resp = client.patch(
+        f"/api/v1/students/{student['id']}", json={"class_id": class_b["id"]}, headers=auth_headers(staff_a, pwd_a)
+    )
+    assert resp.status_code == 404
+
+
+def test_teacher_cannot_update_student(client, make_tenant, make_user, auth_headers):
+    tenant = make_tenant()
+    staff, pwd_staff = make_user(tenant=tenant, role=UserRole.STAFF)
+    teacher, pwd_teacher = make_user(tenant=tenant, role=UserRole.TEACHER)
+    student = client.post("/api/v1/students", json={"first_name": "A", "last_name": "B"}, headers=auth_headers(staff, pwd_staff)).json()
+
+    resp = client.patch(f"/api/v1/students/{student['id']}", json={"first_name": "Modifié"}, headers=auth_headers(teacher, pwd_teacher))
+    assert resp.status_code == 403

@@ -196,3 +196,45 @@ def test_duplicate_guardian_link_rejected(client, make_tenant, make_user, auth_h
     assert first.status_code == 201
     second = client.post("/api/v1/guardian-links", json=payload, headers=headers)
     assert second.status_code == 409
+
+
+def test_list_and_delete_guardian_link(client, make_tenant, make_user, auth_headers):
+    tenant = make_tenant()
+    admin, pwd = make_user(tenant=tenant, role=UserRole.SCHOOL_ADMIN)
+    headers = auth_headers(admin, pwd)
+    student = client.post("/api/v1/students", json={"first_name": "X", "last_name": "Y"}, headers=headers).json()
+    parent = client.post(
+        "/api/v1/users",
+        json={"email": "list-parent@example.com", "password": "Str0ng#Passw0rd!", "full_name": "Parent", "role": "parent"},
+        headers=headers,
+    ).json()
+    link = client.post(
+        "/api/v1/guardian-links",
+        json={"parent_user_id": parent["id"], "student_id": student["id"], "relationship_label": "Mère"},
+        headers=headers,
+    ).json()
+
+    listed = client.get("/api/v1/guardian-links", headers=headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+    assert listed.json()[0]["id"] == link["id"]
+
+    delete_resp = client.delete(f"/api/v1/guardian-links/{link['id']}", headers=headers)
+    assert delete_resp.status_code == 204
+
+    listed_after = client.get("/api/v1/guardian-links", headers=headers).json()
+    assert listed_after == []
+
+    # Le parent perd effectivement l'accès une fois le rattachement retiré
+    login_resp = client.post("/api/v1/auth/login", json={"email": "list-parent@example.com", "password": "Str0ng#Passw0rd!"})
+    parent_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    children = client.get("/api/v1/me/children", headers=parent_headers)
+    assert children.json() == []
+
+
+def test_teacher_cannot_list_or_delete_guardian_links(client, make_tenant, make_user, auth_headers):
+    tenant = make_tenant()
+    teacher, pwd = make_user(tenant=tenant, role=UserRole.TEACHER)
+    headers = auth_headers(teacher, pwd)
+    assert client.get("/api/v1/guardian-links", headers=headers).status_code == 403
+    assert client.delete("/api/v1/guardian-links/00000000-0000-0000-0000-000000000000", headers=headers).status_code == 403

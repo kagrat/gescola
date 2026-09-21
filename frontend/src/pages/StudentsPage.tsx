@@ -9,9 +9,14 @@ interface Student {
   id: string;
   first_name: string;
   last_name: string;
+  class_id: string | null;
   guardian_name: string | null;
   guardian_phone: string | null;
   status: string;
+}
+interface SchoolClass {
+  id: string;
+  name: string;
 }
 
 const STATUS_PILL: Record<string, { label: string; tone: "ok" | "warn" | "bad" | "neutral" }> = {
@@ -23,6 +28,7 @@ const STATUS_PILL: Record<string, { label: string; tone: "ok" | "warn" | "bad" |
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -35,9 +41,12 @@ export default function StudentsPage() {
       .get<Student[]>("/students")
       .then(setStudents)
       .finally(() => setLoading(false));
+    api.get<SchoolClass[]>("/classes").then(setClasses).catch(() => setClasses([]));
   }
 
   useEffect(reload, []);
+
+  const className = (id: string | null) => classes.find((c) => c.id === id)?.name ?? "—";
 
   async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -48,6 +57,7 @@ export default function StudentsPage() {
       await api.post("/students", {
         first_name: form.get("first_name"),
         last_name: form.get("last_name"),
+        class_id: form.get("class_id") || null,
         guardian_name: form.get("guardian_name") || null,
         guardian_phone: form.get("guardian_phone") || null,
       });
@@ -96,6 +106,16 @@ export default function StudentsPage() {
           <form onSubmit={handleCreate} className="mb-6 border border-line rounded-lg bg-white p-5 grid sm:grid-cols-2 gap-4">
             <Field name="first_name" label="Prénom" required />
             <Field name="last_name" label="Nom" required />
+            <div>
+              <label htmlFor="class_id" className="block text-sm font-medium text-ink/80 mb-1.5">Classe</label>
+              <select
+                id="class_id" name="class_id"
+                className="w-full rounded-lg border border-line bg-white px-3.5 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-sky/30 focus:border-sky transition"
+              >
+                <option value="">— Non affecté —</option>
+                {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
             <Field name="guardian_name" label="Tuteur / tutrice" />
             <Field name="guardian_phone" label="Téléphone du tuteur" />
             {formError && <p className="sm:col-span-2 text-sm text-brick">{formError}</p>}
@@ -115,6 +135,7 @@ export default function StudentsPage() {
             <thead>
               <tr>
                 <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-5 pb-2.5 pt-4">Élève</th>
+                <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-5 pb-2.5 pt-4">Classe</th>
                 <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-5 pb-2.5 pt-4">Tuteur</th>
                 <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-5 pb-2.5 pt-4">Contact</th>
                 <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-5 pb-2.5 pt-4">Statut</th>
@@ -122,10 +143,10 @@ export default function StudentsPage() {
             </thead>
             <tbody className="divide-y divide-line">
               {loading && (
-                <tr><td colSpan={4} className="px-5 py-6 text-ink/50">Chargement…</td></tr>
+                <tr><td colSpan={5} className="px-5 py-6 text-ink/50">Chargement…</td></tr>
               )}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={4} className="px-5 py-8 text-ink/50">Aucun élève trouvé.</td></tr>
+                <tr><td colSpan={5} className="px-5 py-8 text-ink/50">Aucun élève trouvé.</td></tr>
               )}
               {filtered.map((s) => {
                 const pill = STATUS_PILL[s.status] ?? { label: s.status, tone: "neutral" as const };
@@ -139,6 +160,7 @@ export default function StudentsPage() {
                         </span>
                       </Link>
                     </td>
+                    <td className="px-5 py-3 text-ink/70">{className(s.class_id)}</td>
                     <td className="px-5 py-3 text-ink/70">{s.guardian_name || "—"}</td>
                     <td className="px-5 py-3 text-ink/70">{s.guardian_phone || "—"}</td>
                     <td className="px-5 py-3"><StatusPill label={pill.label} tone={pill.tone} /></td>

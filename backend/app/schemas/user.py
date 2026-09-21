@@ -28,6 +28,7 @@ class TenantOut(BaseModel):
     name: str
     code: str
     is_active: bool
+    network_id: uuid.UUID | None
 
 
 class UserCreate(BaseModel):

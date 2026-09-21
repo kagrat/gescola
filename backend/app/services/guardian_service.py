@@ -64,6 +64,25 @@ def list_children_for_parent(db: Session, *, tenant_id: uuid.UUID, parent_user_i
     return list(db.execute(select(Student).where(Student.id.in_(student_ids))).scalars().all())
 
 
+def list_guardian_links(db: Session, *, tenant_id: uuid.UUID) -> list[GuardianLink]:
+    return list(db.execute(select(GuardianLink).where(GuardianLink.tenant_id == tenant_id)).scalars().all())
+
+
+def delete_guardian_link(db: Session, *, tenant_id: uuid.UUID, actor_id: uuid.UUID, link_id: uuid.UUID) -> None:
+    link = db.execute(
+        select(GuardianLink).where(GuardianLink.id == link_id, GuardianLink.tenant_id == tenant_id)
+    ).scalar_one_or_none()
+    if link is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rattachement introuvable.")
+    log_action(
+        db, tenant_id=tenant_id, actor_user_id=actor_id, action="guardian_link.delete",
+        target_type="GuardianLink", target_id=str(link_id),
+        metadata={"parent_user_id": str(link.parent_user_id), "student_id": str(link.student_id)},
+    )
+    db.delete(link)
+    db.commit()
+
+
 def assert_parent_linked_to_student(
     db: Session, *, tenant_id: uuid.UUID, parent_user_id: uuid.UUID, student_id: uuid.UUID
 ) -> None:

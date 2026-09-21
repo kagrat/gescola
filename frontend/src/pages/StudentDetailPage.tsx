@@ -4,13 +4,15 @@ import { api, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import StatusPill from "../components/StatusPill";
 import {
-  CAN_LOCK_GRADES, CAN_MANAGE_ATTENDANCE, CAN_MANAGE_FINANCE, CAN_READ_GRADES, CAN_WRITE_GRADES, roleCan,
+  CAN_LOCK_GRADES, CAN_MANAGE_ATTENDANCE, CAN_MANAGE_FINANCE, CAN_MANAGE_REGISTRY, CAN_OVERRIDE_LOCKED_GRADES,
+  CAN_READ_GRADES, CAN_WRITE_GRADES, roleCan,
 } from "../lib/permissions";
 
 interface Student {
   id: string;
   first_name: string;
   last_name: string;
+  class_id: string | null;
   status: string;
 }
 interface Subject {
@@ -54,13 +56,14 @@ export default function StudentDetailPage() {
   const [student, setStudent] = useState<Student | null>(null);
   const [notFound, setNotFound] = useState(false);
 
-  useEffect(() => {
+  function reloadStudent() {
     if (!studentId) return;
     api
       .get<Student>(`/students/${studentId}`)
       .then(setStudent)
       .catch(() => setNotFound(true));
-  }, [studentId]);
+  }
+  useEffect(reloadStudent, [studentId]);
 
   if (notFound) {
     return (
@@ -84,9 +87,62 @@ export default function StudentDetailPage() {
       </h1>
       <span className="inline-block mt-1"><StatusPill label={student.status === "active" ? "Actif" : student.status} tone={student.status === "active" ? "ok" : "neutral"} /></span>
 
+      {roleCan(user?.role, CAN_MANAGE_REGISTRY) && (
+        <ClassAssignment studentId={studentId} classId={student.class_id} onUpdated={reloadStudent} />
+      )}
+
       {roleCan(user?.role, CAN_READ_GRADES) && <GradesSection studentId={studentId} role={user?.role} />}
       {roleCan(user?.role, CAN_MANAGE_ATTENDANCE) && <AttendanceSection studentId={studentId} />}
       {roleCan(user?.role, CAN_MANAGE_FINANCE) && <FinanceSection studentId={studentId} />}
+      {roleCan(user?.role, CAN_MANAGE_REGISTRY) && <LibrarySection studentId={studentId} />}
+      {roleCan(user?.role, CAN_MANAGE_FINANCE) && <CanteenSection studentId={studentId} />}
+    </div>
+  );
+}
+
+// ---------------- Classe (rattachement) ----------------
+
+function ClassAssignment({
+  studentId, classId, onUpdated,
+}: { studentId: string; classId: string | null; onUpdated: () => void }) {
+  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get<{ id: string; name: string }[]>("/classes").then(setClasses).catch(() => setClasses([]));
+  }, []);
+
+  const currentName = classes.find((c) => c.id === classId)?.name ?? "Non affecté";
+
+  async function handleChange(newClassId: string) {
+    setError(null);
+    try {
+      await api.patch(`/students/${studentId}`, { class_id: newClassId || null });
+      setEditing(false);
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible de changer la classe.");
+    }
+  }
+
+  return (
+    <div className="mt-3 flex items-center gap-2 text-sm">
+      <span className="text-ink/50">Classe :</span>
+      {editing ? (
+        <select
+          autoFocus defaultValue={classId ?? ""} onChange={(e) => handleChange(e.target.value)} onBlur={() => setEditing(false)}
+          className="rounded border border-line bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy"
+        >
+          <option value="">— Non affecté —</option>
+          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      ) : (
+        <button onClick={() => setEditing(true)} className="text-navy font-medium hover:underline">
+          {currentName}
+        </button>
+      )}
+      {error && <span className="text-brick text-xs">{error}</span>}
     </div>
   );
 }
@@ -101,6 +157,9 @@ function GradesSection({ studentId, role }: { studentId: string; role: string | 
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lockMessage, setLockMessage] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
 
   function reload() {
     api.get<Grade[]>(`/students/${studentId}/grades?term=${term}`).then(setGrades);
@@ -142,6 +201,23 @@ function GradesSection({ studentId, role }: { studentId: string; role: string | 
       reload();
     } catch (err) {
       setLockMessage(err instanceof ApiError ? err.message : "Impossible de verrouiller.");
+    }
+  }
+
+  function startEdit(g: Grade) {
+    setEditingId(g.id);
+    setEditValue(String(g.value));
+    setEditError(null);
+  }
+
+  async function submitEdit(gradeId: string) {
+    setEditError(null);
+    try {
+      await api.patch(`/grades/${gradeId}`, { value: Number(editValue) });
+      setEditingId(null);
+      reload();
+    } catch (err) {
+      setEditError(err instanceof ApiError ? err.message : "Impossible de modifier cette note.");
     }
   }
 
@@ -199,30 +275,56 @@ function GradesSection({ studentId, role }: { studentId: string; role: string | 
               <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Note</th>
               <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Coef.</th>
               <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Statut</th>
+              <th className="border-b border-line"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
             {grades.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-6 text-ink/50">Aucune note pour {term}.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-6 text-ink/50">Aucune note pour {term}.</td></tr>
             )}
-            {grades.map((g) => (
-              <tr key={g.id}>
-                <td className="px-4 py-2.5 text-ink">{subjectName(g.subject_id)}</td>
-                <td className="px-4 py-2.5 text-ink/70">{g.evaluation_label}</td>
-                <td className="px-4 py-2.5 text-ink font-medium">{g.value}</td>
-                <td className="px-4 py-2.5 text-ink/70">{g.coefficient}</td>
-                <td className="px-4 py-2.5">
-                  {g.is_locked ? (
-                    <StatusPill label="Verrouillée" tone="bad" />
-                  ) : (
-                    <StatusPill label="Modifiable" tone="neutral" />
-                  )}
-                </td>
-              </tr>
-            ))}
+            {grades.map((g) => {
+              const canEdit = roleCan(role, CAN_WRITE_GRADES) || roleCan(role, CAN_OVERRIDE_LOCKED_GRADES);
+              const isEditing = editingId === g.id;
+              return (
+                <tr key={g.id}>
+                  <td className="px-4 py-2.5 text-ink">{subjectName(g.subject_id)}</td>
+                  <td className="px-4 py-2.5 text-ink/70">{g.evaluation_label}</td>
+                  <td className="px-4 py-2.5 text-ink font-medium">
+                    {isEditing ? (
+                      <input
+                        type="number" step="0.5" min="0" max="20" value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        className="w-20 rounded border border-line px-2 py-1 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy"
+                      />
+                    ) : g.value}
+                  </td>
+                  <td className="px-4 py-2.5 text-ink/70">{g.coefficient}</td>
+                  <td className="px-4 py-2.5">
+                    {g.is_locked ? (
+                      <StatusPill label="Verrouillée" tone="bad" />
+                    ) : (
+                      <StatusPill label="Modifiable" tone="neutral" />
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    {canEdit && (g.is_locked ? roleCan(role, CAN_OVERRIDE_LOCKED_GRADES) : true) && (
+                      isEditing ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => submitEdit(g.id)} className="text-pass text-sm hover:underline">OK</button>
+                          <button onClick={() => setEditingId(null)} className="text-ink/40 text-sm hover:underline">Annuler</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => startEdit(g)} className="text-navy text-sm hover:underline">Modifier</button>
+                      )
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+      {editError && <p className="mt-2 text-sm text-brick">{editError}</p>}
 
       {roleCan(role, CAN_LOCK_GRADES) && grades.length > 0 && (
         <div className="mt-3 flex items-center gap-3">
@@ -339,6 +441,7 @@ function FinanceSection({ studentId }: { studentId: string }) {
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [remindMessage, setRemindMessage] = useState<string | null>(null);
 
   function reload() {
     api.get<Invoice[]>(`/students/${studentId}/invoices`).then(setInvoices);
@@ -379,6 +482,20 @@ function FinanceSection({ studentId }: { studentId: string }) {
       reload();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Impossible d'enregistrer le paiement.");
+    }
+  }
+
+  async function handleRemind(invoiceId: string) {
+    setRemindMessage(null);
+    try {
+      const resp = await api.post<{ notified: number }>(`/invoices/${invoiceId}/remind`);
+      setRemindMessage(
+        resp.notified > 0
+          ? `${resp.notified} parent(s) notifié(s).`
+          : "Aucun parent rattaché à cet élève — relance non envoyée."
+      );
+    } catch (err) {
+      setRemindMessage(err instanceof ApiError ? err.message : "Impossible d'envoyer la relance.");
     }
   }
 
@@ -439,9 +556,14 @@ function FinanceSection({ studentId }: { studentId: string }) {
                 <td className="px-4 py-2.5"><StatusPill label={statusLabel[inv.status]} tone={statusTone[inv.status]} /></td>
                 <td className="px-4 py-2.5">
                   {inv.status !== "paid" && inv.status !== "cancelled" && (
-                    <button onClick={() => setPayingInvoice(inv)} className="text-navy text-sm underline underline-offset-2 hover:text-navy-light">
-                      Encaisser
-                    </button>
+                    <div className="flex items-center gap-3 justify-end">
+                      <button onClick={() => handleRemind(inv.id)} className="text-ochre-dark text-sm underline underline-offset-2 hover:text-ochre">
+                        Relancer
+                      </button>
+                      <button onClick={() => setPayingInvoice(inv)} className="text-navy text-sm underline underline-offset-2 hover:text-navy-light">
+                        Encaisser
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>
@@ -449,6 +571,7 @@ function FinanceSection({ studentId }: { studentId: string }) {
           </tbody>
         </table>
       </div>
+      {remindMessage && <p className="mt-2 text-sm text-ink/60">{remindMessage}</p>}
 
       {payingInvoice && (
         <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4">
@@ -479,6 +602,147 @@ function FinanceSection({ studentId }: { studentId: string }) {
           </div>
         </div>
       )}
+    </section>
+  );
+}
+
+// ---------------- Bibliothèque ----------------
+
+interface Loan {
+  id: string;
+  book_id: string;
+  loaned_at: string;
+  due_at: string;
+  returned_at: string | null;
+}
+interface Book {
+  id: string;
+  title: string;
+  author: string;
+}
+
+function LibrarySection({ studentId }: { studentId: string }) {
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  function reload() {
+    api.get<Loan[]>(`/library/students/${studentId}/loans`).then(setLoans).catch(() => setLoans([]));
+    api.get<Book[]>("/library/books").then(setBooks).catch(() => setBooks([]));
+  }
+  useEffect(reload, [studentId]);
+
+  const bookTitle = (id: string) => books.find((b) => b.id === id)?.title ?? "—";
+
+  async function handleReturn(loanId: string) {
+    setError(null);
+    try {
+      await api.post(`/library/loans/${loanId}/return`);
+      reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible d'enregistrer le retour.");
+    }
+  }
+
+  if (books.length === 0 && loans.length === 0) return null; // bibliothèque pas encore utilisée dans l'établissement
+
+  return (
+    <section className="mt-10">
+      <SectionHeader title="Bibliothèque" />
+      {error && <p className="mt-2 text-sm text-brick">{error}</p>}
+      <div className="mt-4 border border-line rounded bg-white overflow-hidden">
+        <table className="w-full text-[14.5px]">
+          <thead>
+            <tr>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Ouvrage</th>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Emprunté le</th>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">À rendre le</th>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Statut</th>
+              <th className="border-b border-line"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {loans.length === 0 && (
+              <tr><td colSpan={5} className="px-4 py-6 text-ink/50">Aucun emprunt pour cet élève.</td></tr>
+            )}
+            {loans.map((l) => (
+              <tr key={l.id}>
+                <td className="px-4 py-2.5 text-ink">{bookTitle(l.book_id)}</td>
+                <td className="px-4 py-2.5 text-ink/70">{l.loaned_at}</td>
+                <td className="px-4 py-2.5 text-ink/70">{l.due_at}</td>
+                <td className="px-4 py-2.5">
+                  {l.returned_at ? <StatusPill label="Rendu" tone="ok" /> : <StatusPill label="En cours" tone="warn" />}
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  {!l.returned_at && (
+                    <button onClick={() => handleReturn(l.id)} className="text-navy text-sm underline underline-offset-2 hover:text-navy-light">
+                      Retourner
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+// ---------------- Cantine ----------------
+
+interface CanteenSubscription {
+  id: string;
+  plan_id: string;
+  month: string;
+  status: string;
+}
+interface CanteenPlan {
+  id: string;
+  name: string;
+}
+
+function CanteenSection({ studentId }: { studentId: string }) {
+  const [subscriptions, setSubscriptions] = useState<CanteenSubscription[]>([]);
+  const [plans, setPlans] = useState<CanteenPlan[]>([]);
+
+  useEffect(() => {
+    api.get<CanteenSubscription[]>(`/canteen/students/${studentId}/subscriptions`).then(setSubscriptions).catch(() => setSubscriptions([]));
+    api.get<CanteenPlan[]>("/canteen/plans").then(setPlans).catch(() => setPlans([]));
+  }, [studentId]);
+
+  const planName = (id: string) => plans.find((p) => p.id === id)?.name ?? "—";
+
+  if (plans.length === 0 && subscriptions.length === 0) return null; // cantine pas encore utilisée dans l'établissement
+
+  return (
+    <section className="mt-10">
+      <SectionHeader title="Cantine" />
+      <div className="mt-4 border border-line rounded bg-white overflow-hidden">
+        <table className="w-full text-[14.5px]">
+          <thead>
+            <tr>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Mois</th>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Formule</th>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Statut</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {subscriptions.length === 0 && (
+              <tr><td colSpan={3} className="px-4 py-6 text-ink/50">Aucun abonnement pour cet élève.</td></tr>
+            )}
+            {subscriptions.map((s) => (
+              <tr key={s.id}>
+                <td className="px-4 py-2.5 text-ink">{s.month}</td>
+                <td className="px-4 py-2.5 text-ink/70">{planName(s.plan_id)}</td>
+                <td className="px-4 py-2.5">
+                  <StatusPill label={s.status === "active" ? "Actif" : "Annulé"} tone={s.status === "active" ? "ok" : "neutral"} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

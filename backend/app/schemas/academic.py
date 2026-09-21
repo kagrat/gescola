@@ -50,6 +50,17 @@ class StudentCreate(BaseModel):
     guardian_email: EmailStr | None = None
 
 
+class StudentUpdate(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    date_of_birth: date | None = None
+    class_id: uuid.UUID | None = None
+    guardian_name: str | None = None
+    guardian_phone: str | None = None
+    guardian_email: EmailStr | None = None
+    status: StudentStatus | None = None
+
+
 class StudentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID

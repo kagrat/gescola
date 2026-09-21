@@ -13,7 +13,8 @@ from app.services.attendance_service import list_attendance
 from app.services.finance_service import list_invoices
 from app.services.grade_service import compute_student_average, list_grades
 from app.services.guardian_service import (
-    assert_parent_linked_to_student, create_guardian_link, list_children_for_parent,
+    assert_parent_linked_to_student, create_guardian_link, delete_guardian_link, list_children_for_parent,
+    list_guardian_links,
 )
 
 router = APIRouter(tags=["guardian"])
@@ -26,6 +27,23 @@ def create_guardian_link_endpoint(
     current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_GUARDIAN_LINKS)),
 ) -> GuardianLinkOut:
     return create_guardian_link(db, tenant_id=current_user.tenant_id, actor_id=current_user.id, data=payload)
+
+
+@router.get("/guardian-links", response_model=list[GuardianLinkOut])
+def list_guardian_links_endpoint(
+    db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_GUARDIAN_LINKS)),
+) -> list[GuardianLinkOut]:
+    return list_guardian_links(db, tenant_id=current_user.tenant_id)
+
+
+@router.delete("/guardian-links/{link_id}", status_code=204)
+def delete_guardian_link_endpoint(
+    link_id: uuid.UUID,
+    db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_GUARDIAN_LINKS)),
+) -> None:
+    delete_guardian_link(db, tenant_id=current_user.tenant_id, actor_id=current_user.id, link_id=link_id)
 
 
 @router.get("/me/children", response_model=list[ChildOut])
