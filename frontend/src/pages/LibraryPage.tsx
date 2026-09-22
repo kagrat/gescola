@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
+import RequireRole from "../components/RequireRole";
+import { CAN_MANAGE_REGISTRY } from "../lib/permissions";
 
 interface Book {
   id: string;
@@ -15,6 +17,14 @@ interface Student {
 }
 
 export default function LibraryPage() {
+  return (
+    <RequireRole roles={CAN_MANAGE_REGISTRY}>
+      <LibraryPageContent />
+    </RequireRole>
+  );
+}
+
+function LibraryPageContent() {
   const [books, setBooks] = useState<Book[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [showBookForm, setShowBookForm] = useState(false);

@@ -1,5 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
+import { useAuth } from "../auth/AuthContext";
+import { CAN_MANAGE_ESTABLISHMENT_SETTINGS, roleCan } from "../lib/permissions";
 
 interface Settings {
   name: string;
@@ -20,6 +22,8 @@ function fileToDataUri(file: File): Promise<string> {
 }
 
 export default function EstablishmentSettingsPage() {
+  const { user } = useAuth();
+  const canEdit = roleCan(user?.role, CAN_MANAGE_ESTABLISHMENT_SETTINGS);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,43 +80,52 @@ export default function EstablishmentSettingsPage() {
       <p className="text-sm text-ink/55 mt-1">
         Identité légale utilisée sur les documents officiels (bulletins, attestations).
       </p>
+      {!canEdit && (
+        <p className="mt-3 text-sm text-ochre-dark bg-ochre/10 border border-ochre/20 rounded px-3 py-2">
+          Lecture seule — seule la Direction peut modifier ces informations.
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="mt-8 border border-line rounded bg-white p-6 space-y-5">
-        <div>
-          <label className="block text-sm font-medium text-ink/80 mb-1.5">Nom légal</label>
-          <input value={settings.name} disabled className="w-full rounded border border-line bg-paper px-3.5 py-2.5 text-[14.5px] text-ink/50" />
-          <p className="text-xs text-ink/40 mt-1">Modifiable uniquement par le Super Admin.</p>
-        </div>
-
-        <Field name="trade_name" label="Nom commercial (si différent)" defaultValue={settings.trade_name} placeholder="Groupe Scolaire La Colombe" />
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field name="rccm" label="RCCM" defaultValue={settings.rccm} placeholder="BJ-COT-2024-B-1234" />
-          <Field name="ifu" label="IFU" defaultValue={settings.ifu} placeholder="3202400001234" />
-        </div>
-
-        <Field name="address" label="Localisation" defaultValue={settings.address} placeholder="Cotonou, Bénin" />
-
-        <div>
-          <label className="block text-sm font-medium text-ink/80 mb-1.5">Logo</label>
-          <div className="flex items-center gap-4">
-            {logoPreview ? (
-              <img src={logoPreview} alt="Logo" className="w-16 h-16 object-contain border border-line rounded bg-paper" />
-            ) : (
-              <div className="w-16 h-16 border border-dashed border-line rounded flex items-center justify-center text-xs text-ink/30">
-                Aucun
-              </div>
-            )}
-            <input type="file" accept="image/*" onChange={handleLogoChange} className="text-sm text-ink/60" />
+        <fieldset disabled={!canEdit} className="contents">
+          <div>
+            <label className="block text-sm font-medium text-ink/80 mb-1.5">Nom légal</label>
+            <input value={settings.name} disabled className="w-full rounded border border-line bg-paper px-3.5 py-2.5 text-[14.5px] text-ink/50" />
+            <p className="text-xs text-ink/40 mt-1">Modifiable uniquement par le Super Admin.</p>
           </div>
-        </div>
+
+          <Field name="trade_name" label="Nom commercial (si différent)" defaultValue={settings.trade_name} placeholder="Groupe Scolaire La Colombe" />
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field name="rccm" label="RCCM" defaultValue={settings.rccm} placeholder="BJ-COT-2024-B-1234" />
+            <Field name="ifu" label="IFU" defaultValue={settings.ifu} placeholder="3202400001234" />
+          </div>
+
+          <Field name="address" label="Localisation" defaultValue={settings.address} placeholder="Cotonou, Bénin" />
+
+          <div>
+            <label className="block text-sm font-medium text-ink/80 mb-1.5">Logo</label>
+            <div className="flex items-center gap-4">
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo" className="w-16 h-16 object-contain border border-line rounded bg-paper" />
+              ) : (
+                <div className="w-16 h-16 border border-dashed border-line rounded flex items-center justify-center text-xs text-ink/30">
+                  Aucun
+                </div>
+              )}
+              {canEdit && <input type="file" accept="image/*" onChange={handleLogoChange} className="text-sm text-ink/60" />}
+            </div>
+          </div>
+        </fieldset>
 
         {error && <p className="text-sm text-brick">{error}</p>}
         {success && <p className="text-sm text-pass">{success}</p>}
 
-        <button type="submit" disabled={submitting} className="rounded bg-navy text-paper text-sm font-medium px-5 py-2.5 hover:bg-navy-light transition disabled:opacity-60">
-          {submitting ? "Enregistrement…" : "Enregistrer"}
-        </button>
+        {canEdit && (
+          <button type="submit" disabled={submitting} className="rounded bg-navy text-paper text-sm font-medium px-5 py-2.5 hover:bg-navy-light transition disabled:opacity-60">
+            {submitting ? "Enregistrement…" : "Enregistrer"}
+          </button>
+        )}
       </form>
     </div>
   );

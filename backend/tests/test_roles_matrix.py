@@ -88,6 +88,21 @@ def test_accountant_can_manage_finance_but_not_write_registry(client, make_tenan
     assert student_create_resp.status_code == 403
 
 
+def test_accountant_can_read_student_registry_to_find_someone_to_bill(client, make_tenant, make_user, auth_headers):
+    """Corrige un vrai bug trouvé en production interne : sans lecture du
+    registre, le comptable n'avait aucun moyen de retrouver un élève pour
+    consulter ou encaisser ses factures — le rôle était inutilisable en
+    pratique malgré des droits d'écriture corrects sur les finances."""
+    tenant = make_tenant()
+    admin, pwd_admin = make_user(tenant=tenant, role=UserRole.SCHOOL_ADMIN)
+    client.post("/api/v1/students", json={"first_name": "A", "last_name": "B"}, headers=auth_headers(admin, pwd_admin))
+
+    accountant, pwd = make_user(tenant=tenant, role=UserRole.ACCOUNTANT)
+    resp = client.get("/api/v1/students", headers=auth_headers(accountant, pwd))
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1
+
+
 def test_school_admin_can_create_every_internal_role(client, make_tenant, make_user, auth_headers):
     tenant = make_tenant()
     admin, pwd = make_user(tenant=tenant, role=UserRole.SCHOOL_ADMIN)

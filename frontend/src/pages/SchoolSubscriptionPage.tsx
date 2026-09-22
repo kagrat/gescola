@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import RequireRole from "../components/RequireRole";
+import { CAN_VIEW_SCHOOL_SUBSCRIPTION } from "../lib/permissions";
 
 interface Plan { name: string; price_per_month: number; max_students: number | null; }
 interface Subscription {
@@ -25,6 +27,14 @@ function daysLeft(dateStr: string): number {
 }
 
 export default function SchoolSubscriptionPage() {
+  return (
+    <RequireRole roles={CAN_VIEW_SCHOOL_SUBSCRIPTION}>
+      <SchoolSubscriptionPageContent />
+    </RequireRole>
+  );
+}
+
+function SchoolSubscriptionPageContent() {
   const [sub, setSub] = useState<Subscription | null | undefined>(undefined);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
 

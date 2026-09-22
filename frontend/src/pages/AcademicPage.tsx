@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
+import { useAuth } from "../auth/AuthContext";
+import { CAN_MANAGE_REGISTRY, roleCan } from "../lib/permissions";
 
 interface SchoolClass {
   id: string;
@@ -22,6 +24,8 @@ const CYCLE_LABELS: Record<string, string> = {
 const inputCls = "w-full rounded border border-line bg-white px-3.5 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition";
 
 export default function AcademicPage() {
+  const { user } = useAuth();
+  const canManage = roleCan(user?.role, CAN_MANAGE_REGISTRY);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [showClassForm, setShowClassForm] = useState(false);
@@ -72,12 +76,14 @@ export default function AcademicPage() {
       <section className="mt-8">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg text-ink">Classes</h2>
-          <button onClick={() => setShowClassForm((v) => !v)} className="rounded bg-navy text-paper text-sm font-medium px-4 py-2 hover:bg-navy-light transition">
-            {showClassForm ? "Annuler" : "+ Classe"}
-          </button>
+          {canManage && (
+            <button onClick={() => setShowClassForm((v) => !v)} className="rounded bg-navy text-paper text-sm font-medium px-4 py-2 hover:bg-navy-light transition">
+              {showClassForm ? "Annuler" : "+ Classe"}
+            </button>
+          )}
         </div>
 
-        {showClassForm && (
+        {canManage && showClassForm && (
           <form onSubmit={handleCreateClass} className="mt-4 border border-line rounded bg-white p-5 grid sm:grid-cols-3 gap-4">
             <Field name="name" label="Nom" placeholder="6ème A" required />
             <Field name="level" label="Niveau" placeholder="6ème" required />
@@ -131,12 +137,14 @@ export default function AcademicPage() {
       <section className="mt-10 mb-16">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg text-ink">Matières</h2>
-          <button onClick={() => setShowSubjectForm((v) => !v)} className="rounded border border-navy text-navy text-sm font-medium px-4 py-2 hover:bg-navy/5 transition">
-            {showSubjectForm ? "Annuler" : "+ Matière"}
-          </button>
+          {canManage && (
+            <button onClick={() => setShowSubjectForm((v) => !v)} className="rounded border border-navy text-navy text-sm font-medium px-4 py-2 hover:bg-navy/5 transition">
+              {showSubjectForm ? "Annuler" : "+ Matière"}
+            </button>
+          )}
         </div>
 
-        {showSubjectForm && (
+        {canManage && showSubjectForm && (
           <form onSubmit={handleCreateSubject} className="mt-4 border border-line rounded bg-white p-5 grid sm:grid-cols-2 gap-4">
             <Field name="name" label="Nom" placeholder="Mathématiques" required />
             <Field name="default_coefficient" label="Coefficient par défaut" type="number" step="0.5" min="0.5" defaultValue="1" />

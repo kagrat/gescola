@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { api } from "../lib/api";
+import RequireRole from "../components/RequireRole";
+import { CAN_VIEW_REPORTS } from "../lib/permissions";
 
 interface OverviewReport {
   total_active_students: number;
@@ -12,6 +14,14 @@ interface OverviewReport {
 const TERMS = ["T1", "T2", "T3"];
 
 export default function ReportsPage() {
+  return (
+    <RequireRole roles={CAN_VIEW_REPORTS}>
+      <ReportsPageContent />
+    </RequireRole>
+  );
+}
+
+function ReportsPageContent() {
   const [term, setTerm] = useState("T1");
   const [report, setReport] = useState<OverviewReport | null>(null);
   const [error, setError] = useState<string | null>(null);

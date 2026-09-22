@@ -36,8 +36,12 @@ CAN_MANAGE_USERS = (UserRole.SCHOOL_ADMIN,)
 CAN_MANAGE_REGISTRY = (UserRole.SCHOOL_ADMIN, UserRole.STAFF)
 
 # Lecture du référentiel élèves/classes/matières : tout le personnel encadrant.
+# Le comptable y est inclus : sans cet accès, il n'a aucun moyen de retrouver
+# un élève pour consulter ou encaisser ses factures (bug réel trouvé et
+# corrigé — voir SECURITY.md).
 CAN_READ_REGISTRY = (
     UserRole.SCHOOL_ADMIN, UserRole.STAFF, UserRole.TEACHER, UserRole.CENSOR, UserRole.SUPERVISOR,
+    UserRole.ACCOUNTANT,
 )
 
 # Saisie des notes : enseignants + direction (la direction peut saisir en cas de besoin).

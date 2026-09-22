@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
+import RequireRole from "../components/RequireRole";
+import { CAN_MANAGE_USERS } from "../lib/permissions";
 
 interface StaffUser {
   id: string;
@@ -28,6 +30,14 @@ const ROLE_OPTIONS = [
 const ROLE_LABELS: Record<string, string> = Object.fromEntries(ROLE_OPTIONS.map((r) => [r.value, r.label]));
 
 export default function StaffPage() {
+  return (
+    <RequireRole roles={CAN_MANAGE_USERS}>
+      <StaffPageContent />
+    </RequireRole>
+  );
+}
+
+function StaffPageContent() {
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [showUserForm, setShowUserForm] = useState(false);

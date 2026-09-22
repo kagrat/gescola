@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
+import RequireRole from "../components/RequireRole";
+import { CAN_MANAGE_FINANCE } from "../lib/permissions";
 
 interface Plan {
   id: string;
@@ -13,6 +15,14 @@ interface Student {
 }
 
 export default function CanteenPage() {
+  return (
+    <RequireRole roles={CAN_MANAGE_FINANCE}>
+      <CanteenPageContent />
+    </RequireRole>
+  );
+}
+
+function CanteenPageContent() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [showPlanForm, setShowPlanForm] = useState(false);

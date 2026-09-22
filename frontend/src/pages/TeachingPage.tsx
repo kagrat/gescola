@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
+import RequireRole from "../components/RequireRole";
+import { CAN_MANAGE_TEACHING } from "../lib/permissions";
 
 interface StaffUser { id: string; full_name: string; email: string; role: string; }
 interface SchoolClass { id: string; name: string; }
@@ -9,6 +11,14 @@ interface Assignment { id: string; teacher_id: string; class_id: string; subject
 const inputCls = "w-full rounded border border-line bg-white px-3.5 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition";
 
 export default function TeachingPage() {
+  return (
+    <RequireRole roles={CAN_MANAGE_TEACHING}>
+      <TeachingPageContent />
+    </RequireRole>
+  );
+}
+
+function TeachingPageContent() {
   const [teachers, setTeachers] = useState<StaffUser[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);

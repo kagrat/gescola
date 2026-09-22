@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import StatusPill from "../components/StatusPill";
+import RequireRole from "../components/RequireRole";
+import { IS_SUPER_ADMIN } from "../lib/permissions";
 
 interface Tenant {
   id: string;
@@ -50,6 +52,14 @@ const INVOICE_STATUS_LABELS: Record<string, { label: string; tone: "ok" | "warn"
 };
 
 export default function TenantBillingPage() {
+  return (
+    <RequireRole roles={IS_SUPER_ADMIN}>
+      <TenantBillingPageContent />
+    </RequireRole>
+  );
+}
+
+function TenantBillingPageContent() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null | undefined>(undefined);

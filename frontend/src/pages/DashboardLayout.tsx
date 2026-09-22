@@ -38,7 +38,7 @@ function navItemsFor(role: string) {
     return items;
   }
 
-  if (["school_admin", "staff", "teacher", "censor", "supervisor"].includes(role)) {
+  if (["school_admin", "staff", "teacher", "censor", "supervisor", "accountant"].includes(role)) {
     items.push({ to: "/eleves", label: "Élèves", icon: Users });
   }
   if (["school_admin", "staff", "teacher", "censor", "supervisor"].includes(role)) {

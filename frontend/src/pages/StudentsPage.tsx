@@ -4,6 +4,8 @@ import { Search, Plus } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import Avatar from "../components/Avatar";
 import StatusPill from "../components/StatusPill";
+import { useAuth } from "../auth/AuthContext";
+import { CAN_MANAGE_REGISTRY, roleCan } from "../lib/permissions";
 
 interface Student {
   id: string;
@@ -27,6 +29,8 @@ const STATUS_PILL: Record<string, { label: string; tone: "ok" | "warn" | "bad" |
 };
 
 export default function StudentsPage() {
+  const { user } = useAuth();
+  const canManage = roleCan(user?.role, CAN_MANAGE_REGISTRY);
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,13 +95,15 @@ export default function StudentsPage() {
               className="flex-1 outline-none text-ink placeholder:text-ink/40 bg-transparent"
             />
           </div>
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="flex items-center gap-1.5 rounded-lg bg-pass text-white text-[13.5px] font-semibold px-4 py-2.5 hover:opacity-90 transition"
-          >
-            <Plus className="w-4 h-4" strokeWidth={2} />
-            {showForm ? "Annuler" : "Nouvel élève"}
-          </button>
+          {canManage && (
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="flex items-center gap-1.5 rounded-lg bg-pass text-white text-[13.5px] font-semibold px-4 py-2.5 hover:opacity-90 transition"
+            >
+              <Plus className="w-4 h-4" strokeWidth={2} />
+              {showForm ? "Annuler" : "Nouvel élève"}
+            </button>
+          )}
         </div>
       </div>
 

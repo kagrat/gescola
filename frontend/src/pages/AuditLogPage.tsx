@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import RequireRole from "../components/RequireRole";
+import { CAN_VIEW_AUDIT_LOG } from "../lib/permissions";
 
 interface AuditLogEntry {
   id: string;
@@ -27,6 +29,14 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default function AuditLogPage() {
+  return (
+    <RequireRole roles={CAN_VIEW_AUDIT_LOG}>
+      <AuditLogPageContent />
+    </RequireRole>
+  );
+}
+
+function AuditLogPageContent() {
   const [logs, setLogs] = useState<AuditLogEntry[] | null>(null);
 
   useEffect(() => {
