@@ -31,6 +31,11 @@ def test_signup_creates_tenant_admin_and_trial_subscription(client):
     )
     assert login.status_code == 200
 
+    # Le compte créé à l'inscription est un FONDATEUR, pas directement Direction
+    # (« Super Admin/inscription → Fondateur → le Fondateur crée la Direction »).
+    me = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {login.json()['access_token']}"})
+    assert me.json()["role"] == "founder"
+
 
 def test_signup_duplicate_email_rejected(client):
     payload = {

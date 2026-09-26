@@ -15,7 +15,7 @@ def create(
     db: Session = Depends(get_tenant_db),
     current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_USERS)),
 ) -> UserOut:
-    return create_user(db, tenant_id=current_user.tenant_id, data=payload)
+    return create_user(db, tenant_id=current_user.tenant_id, actor_role=current_user.role, data=payload)
 
 
 @router.get("", response_model=list[UserOut])

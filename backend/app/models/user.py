@@ -12,6 +12,7 @@ from app.db.base_class import Base, TimestampMixin, uuid_pk
 class UserRole(str, enum.Enum):
     SUPER_ADMIN = "super_admin"          # multi-établissements, éditeur SaaS
     NETWORK_ADMIN = "network_admin"      # promoteur d'un réseau de plusieurs établissements — vue consolidée en lecture seule
+    FOUNDER = "founder"                  # fondateur/propriétaire d'UN établissement — au-dessus de la Direction, facultatif
     SCHOOL_ADMIN = "school_admin"        # directeur — établissement unique
     CENSOR = "censor"                    # censeur / surveillant général — discipline, vie scolaire, validation des notes
     SUPERVISOR = "supervisor"            # surveillant — présences et discipline uniquement

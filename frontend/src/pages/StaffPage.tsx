@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
+import { useAuth } from "../auth/AuthContext";
 import RequireRole from "../components/RequireRole";
 import { CAN_MANAGE_USERS } from "../lib/permissions";
 
@@ -27,7 +28,10 @@ const ROLE_OPTIONS = [
   { value: "parent", label: "Parent" },
 ];
 
-const ROLE_LABELS: Record<string, string> = Object.fromEntries(ROLE_OPTIONS.map((r) => [r.value, r.label]));
+const ROLE_LABELS: Record<string, string> = {
+  ...Object.fromEntries(ROLE_OPTIONS.map((r) => [r.value, r.label])),
+  founder: "Fondateur", // affiché dans la liste du personnel, jamais proposé à la création (voir plus bas)
+};
 
 export default function StaffPage() {
   return (
@@ -38,6 +42,13 @@ export default function StaffPage() {
 }
 
 function StaffPageContent() {
+  const { user } = useAuth();
+  const isFounder = user?.role === "founder";
+  // Seul le Fondateur peut créer un compte Direction — vérifié aussi côté
+  // backend (user_service.create_user) ; ce filtrage n'est qu'un confort
+  // d'interface, pas la protection réelle.
+  const availableRoleOptions = isFounder ? ROLE_OPTIONS : ROLE_OPTIONS.filter((r) => r.value !== "school_admin");
+
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [showUserForm, setShowUserForm] = useState(false);
@@ -121,7 +132,7 @@ function StaffPageContent() {
               required
               className="w-full rounded border border-line bg-white px-3.5 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition"
             >
-              {ROLE_OPTIONS.map((r) => (
+              {availableRoleOptions.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
                 </option>

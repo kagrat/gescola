@@ -11,8 +11,8 @@ from app.schemas.billing import (
     SubscriptionOut, SubscriptionUpdate,
 )
 from app.services.platform_billing_service import (
-    create_plan, effective_status, generate_invoice, get_subscription_for_tenant, list_invoices, list_plans,
-    record_payment, start_trial_subscription, update_subscription,
+    check_billing_access, create_plan, effective_status, generate_invoice, get_subscription_for_tenant,
+    list_invoices, list_plans, record_payment, start_trial_subscription, update_subscription,
 )
 
 router = APIRouter(tags=["platform-billing"])
@@ -119,8 +119,9 @@ def record_payment_endpoint(
 @router.get("/billing/me", response_model=SubscriptionOut)
 def my_subscription_endpoint(
     db: Session = Depends(get_tenant_db),
-    current_user: CurrentUser = Depends(require_roles(UserRole.SCHOOL_ADMIN)),
+    current_user: CurrentUser = Depends(require_roles(UserRole.SCHOOL_ADMIN, UserRole.FOUNDER)),
 ) -> SubscriptionOut:
+    check_billing_access(db, tenant_id=current_user.tenant_id, actor_role=current_user.role)
     # get_tenant_db a déjà positionné le contexte RLS, mais Subscription
     # n'est pas une table RLS (elle n'a pas besoin d'isolation par tenant_id
     # au niveau base, seulement au niveau filtrage applicatif explicite ici).
@@ -130,6 +131,7 @@ def my_subscription_endpoint(
 @router.get("/billing/me/invoices", response_model=list[PlatformInvoiceOut])
 def my_invoices_endpoint(
     db: Session = Depends(get_tenant_db),
-    current_user: CurrentUser = Depends(require_roles(UserRole.SCHOOL_ADMIN)),
+    current_user: CurrentUser = Depends(require_roles(UserRole.SCHOOL_ADMIN, UserRole.FOUNDER)),
 ) -> list[PlatformInvoiceOut]:
+    check_billing_access(db, tenant_id=current_user.tenant_id, actor_role=current_user.role)
     return [_invoice_out(v) for v in list_invoices(db, tenant_id=current_user.tenant_id)]

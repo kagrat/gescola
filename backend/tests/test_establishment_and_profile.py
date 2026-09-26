@@ -18,9 +18,12 @@ def test_super_admin_creates_tenant_with_admin_account_in_one_step(client, make_
     )
     assert resp.status_code == 201
 
-    # Le compte Direction créé fonctionne immédiatement
+    # Le compte créé fonctionne immédiatement — et c'est un FONDATEUR, pas
+    # directement Direction (voir app/core/roles.py).
     login = client.post("/api/v1/auth/login", json={"email": "direction@ecole-complete.bj", "password": "Str0ng#Passw0rd!"})
     assert login.status_code == 200
+    me = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {login.json()['access_token']}"})
+    assert me.json()["role"] == "founder"
 
     # Un essai gratuit a démarré automatiquement, comme pour l'inscription en libre-service
     sub = client.get(f"/api/v1/platform/tenants/{resp.json()['id']}/subscription", headers=headers)

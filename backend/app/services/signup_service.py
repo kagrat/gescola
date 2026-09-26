@@ -36,9 +36,12 @@ def _unique_tenant_code(db: Session, base_name: str) -> str:
 
 
 def signup(db: Session, data: SignupRequest) -> tuple[str, str, Tenant, Subscription]:
-    """Crée l'établissement + son compte Direction + l'abonnement d'essai,
+    """Crée l'établissement + son compte FONDATEUR + l'abonnement d'essai,
     puis renvoie directement une paire de jetons (connexion automatique après
-    inscription, pratique standard des SaaS en libre-service)."""
+    inscription, pratique standard des SaaS en libre-service). Les noms de
+    champs du schéma (admin_full_name, admin_email...) restent inchangés pour
+    ne pas casser le contrat d'API déjà utilisé par le frontend — seul le
+    rôle effectivement créé change."""
     existing_admin = db.execute(select(User).where(User.email == data.admin_email)).scalar_one_or_none()
     if existing_admin:
         # Message générique : ne pas confirmer qu'un compte existe déjà avec
@@ -52,22 +55,22 @@ def signup(db: Session, data: SignupRequest) -> tuple[str, str, Tenant, Subscrip
     db.add(tenant)
     db.flush()  # obtenir tenant.id sans committer déjà — tout doit réussir ensemble
 
-    admin = User(
+    founder = User(
         tenant_id=tenant.id, email=data.admin_email, hashed_password=hash_password(data.admin_password),
-        full_name=data.admin_full_name, role=UserRole.SCHOOL_ADMIN,
+        full_name=data.admin_full_name, role=UserRole.FOUNDER,
     )
-    db.add(admin)
+    db.add(founder)
     db.flush()
 
     subscription = start_trial_subscription(db, tenant_id=tenant.id)
 
     log_action(
-        db, tenant_id=tenant.id, actor_user_id=admin.id, action="tenant.self_signup",
+        db, tenant_id=tenant.id, actor_user_id=founder.id, action="tenant.self_signup",
         target_type="Tenant", target_id=str(tenant.id), metadata={"school_name": data.school_name},
     )
     db.commit()
-    db.refresh(admin)
+    db.refresh(founder)
     db.refresh(tenant)
 
-    access, refresh = issue_token_pair(db, admin)
+    access, refresh = issue_token_pair(db, founder)
     return access, refresh, tenant, subscription

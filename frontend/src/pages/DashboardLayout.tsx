@@ -8,6 +8,7 @@ import { useAuth } from "../auth/AuthContext";
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super administrateur",
   network_admin: "Promoteur de réseau",
+  founder: "Fondateur",
   school_admin: "Direction",
   censor: "Censeur",
   supervisor: "Surveillant",
@@ -19,7 +20,8 @@ const ROLE_LABELS: Record<string, string> = {
 
 // Navigation visible par rôle — chaque intervenant ne voit que ce qui relève
 // de sa fonction (cohérent avec la matrice de permissions du backend,
-// app/core/roles.py).
+// app/core/roles.py). Le Fondateur suit exactement la même navigation que la
+// Direction : il en hérite tous les pouvoirs (voir lib/permissions.ts).
 function navItemsFor(role: string) {
   const items: { to: string; label: string; end?: boolean; icon: typeof LayoutGrid }[] = [
     { to: "/", label: role === "network_admin" ? "Vue du groupe" : "Vue d'ensemble", end: true, icon: LayoutGrid },
@@ -38,13 +40,13 @@ function navItemsFor(role: string) {
     return items;
   }
 
-  if (["school_admin", "staff", "teacher", "censor", "supervisor", "accountant"].includes(role)) {
+  if (["school_admin", "staff", "teacher", "censor", "supervisor", "accountant", "founder"].includes(role)) {
     items.push({ to: "/eleves", label: "Élèves", icon: Users });
   }
-  if (["school_admin", "staff", "teacher", "censor", "supervisor"].includes(role)) {
+  if (["school_admin", "staff", "teacher", "censor", "supervisor", "founder"].includes(role)) {
     items.push({ to: "/classes-matieres", label: "Classes & Matières", icon: BookOpen });
   }
-  if (["school_admin", "censor"].includes(role)) {
+  if (["school_admin", "censor", "founder"].includes(role)) {
     items.push({ to: "/affectations", label: "Affectations", icon: CalendarClock });
     items.push({ to: "/emploi-du-temps", label: "Emploi du temps", icon: CalendarDays });
   }
@@ -52,13 +54,13 @@ function navItemsFor(role: string) {
     items.push({ to: "/mes-classes", label: "Mes classes", icon: BookOpen });
     items.push({ to: "/mon-emploi-du-temps", label: "Mon emploi du temps", icon: CalendarDays });
   }
-  if (["school_admin", "staff"].includes(role)) {
+  if (["school_admin", "staff", "founder"].includes(role)) {
     items.push({ to: "/bibliotheque", label: "Bibliothèque", icon: LibraryIcon });
   }
-  if (["school_admin", "accountant"].includes(role)) {
+  if (["school_admin", "accountant", "founder"].includes(role)) {
     items.push({ to: "/cantine", label: "Cantine", icon: UtensilsCrossed });
   }
-  if (role === "school_admin") {
+  if (["school_admin", "founder"].includes(role)) {
     items.push({ to: "/rapports", label: "Rapports", icon: GraduationCap });
     items.push({ to: "/personnel", label: "Personnel", icon: Wallet });
     items.push({ to: "/parametres", label: "Paramètres établissement", icon: Settings });

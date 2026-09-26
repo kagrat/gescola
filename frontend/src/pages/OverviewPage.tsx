@@ -41,6 +41,7 @@ export default function OverviewPage() {
   if (user?.role === "network_admin") return <NetworkOverview />;
   if (user?.role === "super_admin") return <SuperAdminPage />;
   if (user?.role === "school_admin") return <DirectionOverview />;
+  if (user?.role === "founder") return <DirectionOverview />;
   if (user?.role === "staff") return <RegistrarOverview />;
   if (user?.role === "teacher") return <TeacherOverview />;
   if (user?.role === "censor") return <CensorOverview />;
@@ -104,6 +105,7 @@ function useActiveStudentCount(enabled: boolean) {
 
 function DirectionOverview() {
   const { user } = useAuth();
+  const isFounder = user?.role === "founder";
   const [students, setStudents] = useState<Student[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -115,12 +117,15 @@ function DirectionOverview() {
 
   return (
     <div>
-      <PageHeader title={`Bonjour, ${user?.email.split("@")[0]}`} subtitle="Direction — vue d'ensemble de l'établissement" />
+      <PageHeader
+        title={`Bonjour, ${user?.email.split("@")[0]}`}
+        subtitle={isFounder ? "Fondateur — vue d'ensemble de l'établissement" : "Direction — vue d'ensemble de l'établissement"}
+      />
       <div className="px-10 py-8">
         <div className="grid sm:grid-cols-3 gap-4">
           <HeroCard label="Élèves actifs" value={students ? activeCount : "—"} caption="Établissement rattaché" />
           <StatCard label="Établissement" value={user?.tenant_id ? "Rattaché" : "—"} accent="navy" />
-          <StatCard label="Rôle" value="Direction" accent="pass" />
+          <StatCard label="Rôle" value={isFounder ? "Fondateur" : "Direction"} accent="pass" />
         </div>
 
         {students && students.length > 0 && (

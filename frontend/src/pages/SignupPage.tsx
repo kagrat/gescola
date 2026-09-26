@@ -67,12 +67,14 @@ export default function SignupPage() {
           </div>
 
           <h1 className="font-display text-2xl font-medium text-ink">Créer mon établissement</h1>
-          <p className="mt-1.5 text-sm text-ink/60">Essai gratuit de 14 jours, aucune carte requise.</p>
+          <p className="mt-1.5 text-sm text-ink/60">
+            Essai gratuit de 14 jours, aucune carte requise. Vous serez le compte Fondateur — vous pourrez ensuite créer le compte Direction et le reste du personnel.
+          </p>
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
             <Field name="school_name" label="Nom de l'établissement" placeholder="École La Colombe" required />
-            <Field name="admin_full_name" label="Votre nom complet" placeholder="Mme Directrice" required />
-            <Field name="admin_email" label="Adresse e-mail" type="email" placeholder="directeur@ecole.bj" required />
+            <Field name="admin_full_name" label="Votre nom complet (Fondateur)" placeholder="M. Le Fondateur" required />
+            <Field name="admin_email" label="Adresse e-mail" type="email" placeholder="fondateur@ecole.bj" required />
             <div>
               <Field name="admin_password" label="Mot de passe" type="password" placeholder="••••••••••" required />
               <p className="mt-1.5 text-xs text-ink/40">

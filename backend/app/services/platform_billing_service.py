@@ -11,9 +11,29 @@ from app.models.billing import (
     PlatformInvoice, PlatformInvoiceStatus, PlatformPayment, PlatformPaymentMethod, PlatformPlan, Subscription,
     SubscriptionStatus,
 )
+from app.models.user import User, UserRole
 from app.schemas.billing import PlatformPlanCreate, SubscriptionUpdate
 
 DEFAULT_TRIAL_DAYS = 14
+
+
+def check_billing_access(db: Session, *, tenant_id: uuid.UUID, actor_role: UserRole) -> None:
+    """Consulter l'abonnement de l'établissement est un pouvoir exclusif du
+    Fondateur SI un Fondateur existe pour cet établissement — sinon la
+    Direction le porte (établissement à un seul niveau, cas le plus courant).
+    Vérifié dynamiquement (pas une simple liste de rôles statique) car ça
+    dépend de l'existence effective d'un compte Fondateur pour CE tenant."""
+    if actor_role != UserRole.SCHOOL_ADMIN:
+        return  # le Fondateur, lui, a toujours accès
+    founder_exists = db.execute(
+        select(User).where(User.tenant_id == tenant_id, User.role == UserRole.FOUNDER)
+    ).first() is not None
+    if founder_exists:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Seul le Fondateur peut consulter l'abonnement de cet établissement.",
+        )
+
 
 
 def effective_status(sub: Subscription) -> SubscriptionStatus:

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../lib/api";
+import { api, ApiError } from "../lib/api";
 import RequireRole from "../components/RequireRole";
 import { CAN_VIEW_SCHOOL_SUBSCRIPTION } from "../lib/permissions";
 
@@ -37,9 +37,19 @@ export default function SchoolSubscriptionPage() {
 function SchoolSubscriptionPageContent() {
   const [sub, setSub] = useState<Subscription | null | undefined>(undefined);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [founderExclusive, setFounderExclusive] = useState(false);
 
   useEffect(() => {
-    api.get<Subscription>("/billing/me").then(setSub).catch(() => setSub(null));
+    api
+      .get<Subscription>("/billing/me")
+      .then(setSub)
+      .catch((err) => {
+        // 403 ici veut dire précisément une chose : un Fondateur existe pour
+        // cet établissement et lui seul peut consulter l'abonnement — pas
+        // "aucun abonnement suivi", qui est un cas différent (404 ailleurs).
+        if (err instanceof ApiError && err.status === 403) setFounderExclusive(true);
+        setSub(null);
+      });
     api.get<Invoice[]>("/billing/me/invoices").then(setInvoices).catch(() => setInvoices([]));
   }, []);
 
@@ -52,7 +62,12 @@ function SchoolSubscriptionPageContent() {
       <p className="text-sm text-ink/55 mt-1">Statut de votre abonnement GESCOLA pour cet établissement.</p>
 
       {sub === undefined && <p className="mt-8 text-sm text-ink/40">Chargement…</p>}
-      {sub === null && (
+      {sub === null && founderExclusive && (
+        <p className="mt-8 text-sm text-ochre-dark bg-ochre/10 border border-ochre/20 rounded px-3 py-2">
+          Seul le Fondateur de cet établissement peut consulter cette page.
+        </p>
+      )}
+      {sub === null && !founderExclusive && (
         <p className="mt-8 text-sm text-ink/40">
           Aucun abonnement suivi pour cet établissement — votre accès n'est pas restreint.
         </p>

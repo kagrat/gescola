@@ -7,6 +7,7 @@ interface CurrentUser {
   role:
     | "super_admin"
     | "network_admin"
+    | "founder"
     | "school_admin"
     | "censor"
     | "supervisor"

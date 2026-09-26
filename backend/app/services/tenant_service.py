@@ -11,12 +11,12 @@ from app.services.platform_billing_service import start_trial_subscription
 
 
 def create_tenant(db: Session, data: TenantCreate) -> Tenant:
-    """Crée l'établissement ET son premier compte Direction en une seule
-    action (le Super Admin n'a plus besoin d'un aller-retour par la console
-    Python pour créer les identifiants de l'école) — un essai gratuit démarre
-    automatiquement, exactement comme pour l'inscription en libre-service
-    (voir signup_service.signup), pour un comportement produit cohérent quel
-    que soit le mode de création de l'établissement."""
+    """Crée l'établissement ET son premier compte — un compte FONDATEUR, pas
+    Direction : c'est cohérent avec le flux réel (« Super Admin → crée
+    l'établissement + le compte Fondateur → le Fondateur configure
+    l'établissement et crée le personnel, dont la Direction »). Un essai
+    gratuit démarre automatiquement, exactement comme pour l'inscription en
+    libre-service (voir signup_service.signup)."""
     existing_tenant = db.execute(select(Tenant).where(Tenant.code == data.code)).scalar_one_or_none()
     if existing_tenant:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ce code établissement existe déjà.")
@@ -29,18 +29,18 @@ def create_tenant(db: Session, data: TenantCreate) -> Tenant:
     db.add(tenant)
     db.flush()
 
-    admin = User(
+    founder = User(
         tenant_id=tenant.id, email=data.admin_email, hashed_password=hash_password(data.admin_password),
-        full_name=data.admin_full_name, role=UserRole.SCHOOL_ADMIN,
+        full_name=data.admin_full_name, role=UserRole.FOUNDER,
     )
-    db.add(admin)
+    db.add(founder)
     db.flush()
 
     start_trial_subscription(db, tenant_id=tenant.id)
 
     log_action(
         db, tenant_id=tenant.id, actor_user_id=None, action="tenant.created_by_super_admin",
-        target_type="Tenant", target_id=str(tenant.id), metadata={"admin_email": data.admin_email},
+        target_type="Tenant", target_id=str(tenant.id), metadata={"founder_email": data.admin_email},
     )
     db.commit()
     db.refresh(tenant)
