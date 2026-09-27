@@ -45,6 +45,7 @@ def reset_rate_limiter():
     yield
 
 TABLES_TO_CLEAN = [
+    "sanctions", "incidents",
     "homework", "lesson_log_entries",
     "timetable_slots", "teacher_assignments",
     "platform_payments", "platform_invoices", "subscriptions", "platform_plans",

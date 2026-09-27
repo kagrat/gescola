@@ -89,6 +89,17 @@ function QuickLinks({ links }: { links: { to: string; label: string; description
   );
 }
 
+function useOpenIncidentCount() {
+  const [count, setCount] = useState<number | null>(null);
+  useEffect(() => {
+    api
+      .get<{ status: string }[]>("/incidents")
+      .then((list) => setCount(list.filter((i) => i.status !== "resolved").length))
+      .catch(() => setCount(null));
+  }, []);
+  return count;
+}
+
 function useActiveStudentCount(enabled: boolean) {
   const [count, setCount] = useState<number | null>(null);
   useEffect(() => {
@@ -240,6 +251,7 @@ function TeacherOverview() {
 function CensorOverview() {
   const { user } = useAuth();
   const activeCount = useActiveStudentCount(true);
+  const openIncidents = useOpenIncidentCount();
 
   return (
     <div>
@@ -247,12 +259,13 @@ function CensorOverview() {
       <div className="px-10 py-8">
         <div className="grid sm:grid-cols-2 gap-4">
           <HeroCard label="Élèves actifs" value={activeCount ?? "—"} caption="Établissement rattaché" />
-          <StatCard label="Rôle" value="Censeur" accent="pass" />
+          <StatCard label="Incidents à traiter" value={openIncidents === null ? "—" : String(openIncidents)} accent={openIncidents ? "brick" : "pass"} />
         </div>
 
         <QuickLinks links={[
           { to: "/affectations", label: "Affectations", description: "Rattacher les enseignants à leurs classes" },
           { to: "/emploi-du-temps", label: "Emploi du temps", description: "Construire les emplois du temps" },
+          { to: "/discipline", label: "Discipline", description: "Traiter les incidents et poser les sanctions" },
           { to: "/eleves", label: "Élèves", description: "Consulter et verrouiller les notes" },
           { to: "/classes-matieres", label: "Classes & Matières", description: "Consulter le référentiel" },
         ]} />
@@ -266,6 +279,7 @@ function CensorOverview() {
 function SupervisorOverview() {
   const { user } = useAuth();
   const activeCount = useActiveStudentCount(true);
+  const openIncidents = useOpenIncidentCount();
 
   return (
     <div>
@@ -273,14 +287,15 @@ function SupervisorOverview() {
       <div className="px-10 py-8">
         <div className="grid sm:grid-cols-2 gap-4">
           <HeroCard label="Élèves actifs" value={activeCount ?? "—"} caption="Établissement rattaché" />
-          <StatCard label="Rôle" value="Surveillant" accent="pass" />
+          <StatCard label="Incidents en cours" value={openIncidents === null ? "—" : String(openIncidents)} accent={openIncidents ? "brick" : "pass"} />
         </div>
         <p className="mt-6 text-sm text-ink/55 max-w-md">
-          Votre accès est limité aux présences — vous n'avez pas accès aux notes ni aux finances.
+          Votre accès est limité aux présences et à la discipline — vous n'avez pas accès aux notes ni aux finances. Vous signalez les incidents ; le traitement et les sanctions relèvent du censeur.
         </p>
 
         <QuickLinks links={[
           { to: "/eleves", label: "Élèves", description: "Enregistrer les présences" },
+          { to: "/discipline", label: "Discipline", description: "Signaler un incident au censeur" },
         ]} />
       </div>
     </div>

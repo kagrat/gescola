@@ -26,6 +26,9 @@ const ACTION_LABELS: Record<string, string> = {
   "invoice.reminder_sent": "Relance de facture envoyée",
   "canteen.subscribe": "Abonnement cantine créé",
   "library.loan_created": "Emprunt de livre",
+  "incident.reported": "Incident signalé",
+  "incident.status_changed": "Statut d'un incident modifié",
+  "incident.sanction_imposed": "Sanction disciplinaire posée",
 };
 
 export default function AuditLogPage() {

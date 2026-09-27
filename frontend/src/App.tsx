@@ -19,6 +19,7 @@ import EstablishmentSettingsPage from "./pages/EstablishmentSettingsPage";
 import SchoolSubscriptionPage from "./pages/SchoolSubscriptionPage";
 import ProfilePage from "./pages/ProfilePage";
 import CourseworkPage from "./pages/CourseworkPage";
+import DisciplinePage from "./pages/DisciplinePage";
 import AcademicPage from "./pages/AcademicPage";
 import TeachingPage from "./pages/TeachingPage";
 import MyClassesPage from "./pages/MyClassesPage";
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="abonnement" element={<SchoolSubscriptionPage />} />
             <Route path="profil" element={<ProfilePage />} />
             <Route path="cahier-de-texte" element={<CourseworkPage />} />
+            <Route path="discipline" element={<DisciplinePage />} />
             <Route path="classes-matieres" element={<AcademicPage />} />
             <Route path="affectations" element={<TeachingPage />} />
             <Route path="mes-classes" element={<MyClassesPage />} />

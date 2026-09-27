@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import {
   LayoutGrid, Users, GraduationCap, Wallet, ShieldCheck, Bell, ScrollText, UtensilsCrossed, Library as LibraryIcon,
-  Settings, UserCircle, BookOpen, CalendarDays, CalendarClock,
+  Settings, UserCircle, BookOpen, CalendarDays, CalendarClock, ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
@@ -110,6 +110,9 @@ function navItemsFor(role: string) {
   }
   if (["school_admin", "censor", "staff", "founder"].includes(role)) {
     items.push({ to: "/cahier-de-texte", label: "Cahier de texte", icon: BookOpen });
+  }
+  if (["teacher", "supervisor", "censor", "school_admin", "founder"].includes(role)) {
+    items.push({ to: "/discipline", label: "Discipline", icon: ShieldAlert });
   }
   if (role === "teacher") {
     items.push({ to: "/mes-classes", label: "Mes classes", icon: BookOpen });

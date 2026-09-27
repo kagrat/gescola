@@ -3,9 +3,10 @@ import { useParams, Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import StatusPill from "../components/StatusPill";
+import { CATEGORY_LABELS, SANCTION_LABELS, SEVERITY, STATUS } from "./DisciplinePage";
 import {
   CAN_LOCK_GRADES, CAN_MANAGE_ATTENDANCE, CAN_MANAGE_FINANCE, CAN_MANAGE_REGISTRY, CAN_OVERRIDE_LOCKED_GRADES,
-  CAN_READ_GRADES, CAN_WRITE_GRADES, roleCan,
+  CAN_READ_GRADES, CAN_READ_INCIDENTS, CAN_WRITE_GRADES, roleCan,
 } from "../lib/permissions";
 
 interface Student {
@@ -96,6 +97,7 @@ export default function StudentDetailPage() {
       {roleCan(user?.role, CAN_MANAGE_FINANCE) && <FinanceSection studentId={studentId} />}
       {roleCan(user?.role, CAN_MANAGE_REGISTRY) && <LibrarySection studentId={studentId} />}
       {roleCan(user?.role, CAN_MANAGE_FINANCE) && <CanteenSection studentId={studentId} />}
+      {roleCan(user?.role, CAN_READ_INCIDENTS) && <DisciplineSection studentId={studentId} />}
     </div>
   );
 }
@@ -738,6 +740,52 @@ function CanteenSection({ studentId }: { studentId: string }) {
                 <td className="px-4 py-2.5">
                   <StatusPill label={s.status === "active" ? "Actif" : "Annulé"} tone={s.status === "active" ? "ok" : "neutral"} />
                 </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+// ---------------- Discipline ----------------
+
+interface StudentIncident {
+  id: string; occurred_at: string; category: string; severity: string; description: string; status: string;
+  sanctions: { id: string; sanction_type: string }[];
+}
+
+function DisciplineSection({ studentId }: { studentId: string }) {
+  const [incidents, setIncidents] = useState<StudentIncident[]>([]);
+
+  useEffect(() => {
+    api.get<StudentIncident[]>(`/incidents?student_id=${studentId}`).then(setIncidents).catch(() => setIncidents([]));
+  }, [studentId]);
+
+  return (
+    <section className="mt-10 mb-16">
+      <SectionHeader title="Discipline" />
+      <div className="mt-4 border border-line rounded bg-white overflow-hidden">
+        <table className="w-full text-[14.5px]">
+          <thead>
+            <tr>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Date</th>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Nature</th>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Gravité</th>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Statut</th>
+              <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Sanctions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {incidents.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-ink/50">Aucun incident enregistré.</td></tr>}
+            {incidents.map((i) => (
+              <tr key={i.id}>
+                <td className="px-4 py-2.5 text-ink/70 whitespace-nowrap">{new Date(i.occurred_at).toLocaleDateString("fr-FR")}</td>
+                <td className="px-4 py-2.5 text-ink">{CATEGORY_LABELS[i.category] ?? i.category}</td>
+                <td className="px-4 py-2.5"><StatusPill label={SEVERITY[i.severity]?.label ?? i.severity} tone={SEVERITY[i.severity]?.tone ?? "neutral"} /></td>
+                <td className="px-4 py-2.5"><StatusPill label={STATUS[i.status]?.label ?? i.status} tone={STATUS[i.status]?.tone ?? "neutral"} /></td>
+                <td className="px-4 py-2.5 text-ink/60">{i.sanctions.length === 0 ? "—" : i.sanctions.map((s) => SANCTION_LABELS[s.sanction_type] ?? s.sanction_type).join(", ")}</td>
               </tr>
             ))}
           </tbody>

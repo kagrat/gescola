@@ -95,6 +95,17 @@ CAN_MANAGE_TEACHING = (UserRole.SCHOOL_ADMIN, UserRole.CENSOR, UserRole.FOUNDER)
 CAN_MANAGE_COURSEWORK = (UserRole.TEACHER, UserRole.SCHOOL_ADMIN, UserRole.FOUNDER)
 CAN_READ_COURSEWORK = (UserRole.TEACHER, UserRole.SCHOOL_ADMIN, UserRole.FOUNDER, UserRole.CENSOR, UserRole.STAFF)
 
+# Discipline. Signaler un incident : quiconque encadre les élèves (enseignant,
+# surveillant) + ceux qui traitent. Un enseignant ne voit que SES propres
+# signalements (filtré dans discipline_service). Traiter (changer le statut,
+# poser une sanction) est réservé au censeur, à la direction et au fondateur :
+# celui qui signale ne sanctionne jamais lui-même.
+CAN_REPORT_INCIDENT = (
+    UserRole.TEACHER, UserRole.SUPERVISOR, UserRole.CENSOR, UserRole.SCHOOL_ADMIN, UserRole.FOUNDER,
+)
+CAN_READ_INCIDENTS = CAN_REPORT_INCIDENT
+CAN_MANAGE_DISCIPLINE = (UserRole.CENSOR, UserRole.SCHOOL_ADMIN, UserRole.FOUNDER)
+
 # Rôles à portée "direction" utilisés directement dans certains routers
 # (rapports, journal d'audit, paramètres établissement — écriture, facturation
 # établissement) plutôt que via un regroupement métier dédié.

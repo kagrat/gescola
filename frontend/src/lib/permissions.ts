@@ -15,6 +15,11 @@ export const CAN_MANAGE_USERS = ["school_admin", "founder"];
 export const CAN_MANAGE_TEACHING = ["school_admin", "censor", "founder"];
 export const CAN_MANAGE_COURSEWORK = ["teacher", "school_admin", "founder"];
 export const CAN_READ_COURSEWORK = ["teacher", "school_admin", "founder", "censor", "staff"];
+// Discipline : signaler (enseignant, surveillant + ceux qui traitent) ; traiter
+// (statut, sanctions) réservé au censeur, à la direction et au fondateur.
+export const CAN_REPORT_INCIDENT = ["teacher", "supervisor", "censor", "school_admin", "founder"];
+export const CAN_READ_INCIDENTS = CAN_REPORT_INCIDENT;
+export const CAN_MANAGE_DISCIPLINE = ["censor", "school_admin", "founder"];
 export const CAN_MANAGE_GUARDIAN_LINKS = ["school_admin", "staff", "founder"];
 export const CAN_VIEW_REPORTS = ["school_admin", "founder"];
 export const CAN_VIEW_AUDIT_LOG = ["school_admin", "founder"];
