@@ -108,6 +108,9 @@ function navItemsFor(role: string) {
     items.push({ to: "/affectations", label: "Affectations", icon: CalendarClock });
     items.push({ to: "/emploi-du-temps", label: "Emploi du temps", icon: CalendarDays });
   }
+  if (["school_admin", "censor", "staff", "founder"].includes(role)) {
+    items.push({ to: "/cahier-de-texte", label: "Cahier de texte", icon: BookOpen });
+  }
   if (role === "teacher") {
     items.push({ to: "/mes-classes", label: "Mes classes", icon: BookOpen });
     items.push({ to: "/mon-emploi-du-temps", label: "Mon emploi du temps", icon: CalendarDays });

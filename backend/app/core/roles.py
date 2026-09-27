@@ -88,6 +88,13 @@ CAN_MANAGE_GUARDIAN_LINKS = (UserRole.SCHOOL_ADMIN, UserRole.STAFF, UserRole.FOU
 # études ») en plus de la direction et du fondateur.
 CAN_MANAGE_TEACHING = (UserRole.SCHOOL_ADMIN, UserRole.CENSOR, UserRole.FOUNDER)
 
+# Cahier de texte et devoirs : écriture par l'enseignant (restreint à ses
+# classes/matières affectées, voir coursework_service) + direction + fondateur.
+# Lecture élargie au censeur (coordination pédagogique, cohérent avec son
+# accès aux notes) et au secrétariat (visibilité administrative générale).
+CAN_MANAGE_COURSEWORK = (UserRole.TEACHER, UserRole.SCHOOL_ADMIN, UserRole.FOUNDER)
+CAN_READ_COURSEWORK = (UserRole.TEACHER, UserRole.SCHOOL_ADMIN, UserRole.FOUNDER, UserRole.CENSOR, UserRole.STAFF)
+
 # Rôles à portée "direction" utilisés directement dans certains routers
 # (rapports, journal d'audit, paramètres établissement — écriture, facturation
 # établissement) plutôt que via un regroupement métier dédié.

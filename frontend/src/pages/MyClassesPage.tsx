@@ -16,6 +16,7 @@ export default function MyClassesPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selected, setSelected] = useState<{ classId: string; subjectId: string } | null>(null);
+  const [tab, setTab] = useState<"notes" | "cahier" | "devoirs">("notes");
 
   useEffect(() => {
     api.get<Assignment[]>("/teacher-assignments").then((all) => {
@@ -45,7 +46,7 @@ export default function MyClassesPage() {
   return (
     <div className="px-10 py-10 max-w-4xl">
       <h1 className="font-display text-3xl font-medium text-ink">Mes classes</h1>
-      <p className="text-sm text-ink/55 mt-1">Vos affectations pédagogiques — cliquez une classe pour saisir les notes.</p>
+      <p className="text-sm text-ink/55 mt-1">Vos affectations pédagogiques.</p>
 
       <div className="mt-6 flex flex-wrap gap-2">
         {assignments.map((a) => {
@@ -65,11 +66,35 @@ export default function MyClassesPage() {
       </div>
 
       {selected && (
-        <BulkGradeEntry
-          classId={selected.classId}
-          subjectId={selected.subjectId}
-          students={students.filter((s) => s.class_id === selected.classId)}
-        />
+        <>
+          <div className="mt-6 flex gap-1 border-b border-line">
+            {([
+              ["notes", "Notes"],
+              ["cahier", "Cahier de texte"],
+              ["devoirs", "Devoirs"],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition ${
+                  tab === key ? "border-navy text-navy" : "border-transparent text-ink/50 hover:text-ink"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {tab === "notes" && (
+            <BulkGradeEntry
+              classId={selected.classId}
+              subjectId={selected.subjectId}
+              students={students.filter((s) => s.class_id === selected.classId)}
+            />
+          )}
+          {tab === "cahier" && <LessonLogPanel classId={selected.classId} subjectId={selected.subjectId} />}
+          {tab === "devoirs" && <HomeworkPanel classId={selected.classId} subjectId={selected.subjectId} />}
+        </>
       )}
     </div>
   );
@@ -182,6 +207,153 @@ function BulkGradeEntry({ classId, subjectId, students }: { classId: string; sub
           {submitting ? "Enregistrement…" : "Enregistrer les notes"}
         </button>
       )}
+    </div>
+  );
+}
+
+// ---------------- Cahier de texte ----------------
+
+interface LessonLogEntry { id: string; session_date: string; content: string; }
+
+function LessonLogPanel({ classId, subjectId }: { classId: string; subjectId: string }) {
+  const [entries, setEntries] = useState<LessonLogEntry[]>([]);
+  const [sessionDate, setSessionDate] = useState(new Date().toISOString().slice(0, 10));
+  const [content, setContent] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  function reload() {
+    api.get<LessonLogEntry[]>(`/classes/${classId}/lesson-log`).then(setEntries).catch(() => setEntries([]));
+  }
+  useEffect(reload, [classId, subjectId]);
+
+  async function handleSubmit() {
+    setError(null);
+    if (!content.trim()) {
+      setError("Le contenu de la séance ne peut pas être vide.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post("/lesson-log", { class_id: classId, subject_id: subjectId, session_date: sessionDate, content });
+      setContent("");
+      reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible d'enregistrer.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 border border-line rounded bg-white p-6">
+      <div className="grid sm:grid-cols-[160px_1fr] gap-4">
+        <div>
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">Date</label>
+          <input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)}
+            className="w-full rounded border border-line bg-white px-3 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">Contenu de la séance</label>
+          <textarea
+            value={content} onChange={(e) => setContent(e.target.value)} rows={3}
+            placeholder="Ex : Théorème de Pythagore — démonstration et exercices 1 à 5 (p.42)."
+            className="w-full rounded border border-line bg-white px-3 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy resize-none"
+          />
+        </div>
+      </div>
+      {error && <p className="mt-2 text-sm text-brick">{error}</p>}
+      <button onClick={handleSubmit} disabled={submitting} className="mt-3 rounded bg-ochre text-navy-deep text-sm font-medium px-5 py-2.5 hover:bg-ochre-dark transition disabled:opacity-60">
+        {submitting ? "Enregistrement…" : "Ajouter au cahier de texte"}
+      </button>
+
+      <div className="mt-6 pt-5 border-t border-line space-y-3">
+        {entries.length === 0 && <p className="text-sm text-ink/40">Aucune séance enregistrée pour cette classe.</p>}
+        {entries.map((e) => (
+          <div key={e.id} className="text-[14.5px]">
+            <span className="text-ink/50 text-xs mr-2">{e.session_date}</span>
+            <span className="text-ink">{e.content}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Devoirs ----------------
+
+interface HomeworkItem { id: string; title: string; description: string; due_date: string; }
+
+function HomeworkPanel({ classId, subjectId }: { classId: string; subjectId: string }) {
+  const [items, setItems] = useState<HomeworkItem[]>([]);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  function reload() {
+    api.get<HomeworkItem[]>(`/classes/${classId}/homework`).then(setItems).catch(() => setItems([]));
+  }
+  useEffect(reload, [classId, subjectId]);
+
+  async function handleSubmit() {
+    setError(null);
+    if (!title.trim() || !description.trim() || !dueDate) {
+      setError("Tous les champs sont obligatoires.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post("/homework", { class_id: classId, subject_id: subjectId, title, description, due_date: dueDate });
+      setTitle(""); setDescription(""); setDueDate("");
+      reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible d'enregistrer.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 border border-line rounded bg-white p-6">
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">Titre</label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Exercices chapitre 3"
+            className="w-full rounded border border-line bg-white px-3 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">À rendre le</label>
+          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
+            className="w-full rounded border border-line bg-white px-3 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">Description</label>
+          <textarea
+            value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
+            placeholder="Faire les exercices 1 à 10 page 42."
+            className="w-full rounded border border-line bg-white px-3 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy resize-none"
+          />
+        </div>
+      </div>
+      {error && <p className="mt-2 text-sm text-brick">{error}</p>}
+      <button onClick={handleSubmit} disabled={submitting} className="mt-3 rounded bg-ochre text-navy-deep text-sm font-medium px-5 py-2.5 hover:bg-ochre-dark transition disabled:opacity-60">
+        {submitting ? "Enregistrement…" : "Donner le devoir"}
+      </button>
+
+      <div className="mt-6 pt-5 border-t border-line space-y-3">
+        {items.length === 0 && <p className="text-sm text-ink/40">Aucun devoir donné pour cette classe.</p>}
+        {items.map((h) => (
+          <div key={h.id} className="text-[14.5px]">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-ink">{h.title}</span>
+              <span className="text-ink/40 text-xs">à rendre le {h.due_date}</span>
+            </div>
+            <p className="text-ink/60 text-[13.5px] mt-0.5">{h.description}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

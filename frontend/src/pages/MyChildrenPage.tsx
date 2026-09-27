@@ -21,6 +21,13 @@ interface Invoice {
   status: string;
 }
 
+interface HomeworkItem {
+  id: string;
+  title: string;
+  description: string;
+  due_date: string;
+}
+
 const CURRENT_TERM = "T1";
 
 export default function MyChildrenPage() {
@@ -55,15 +62,19 @@ function ChildCard({ child }: { child: Child }) {
   const [average, setAverage] = useState<Average | null>(null);
   const [attendance, setAttendance] = useState<Attendance[] | null>(null);
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
+  const [homework, setHomework] = useState<HomeworkItem[]>([]);
 
   useEffect(() => {
     api.get<Average>(`/children/${child.id}/average?term=${CURRENT_TERM}`).then(setAverage).catch(() => setAverage(null));
     api.get<Attendance[]>(`/children/${child.id}/attendance`).then(setAttendance).catch(() => setAttendance([]));
     api.get<Invoice[]>(`/children/${child.id}/invoices`).then(setInvoices).catch(() => setInvoices([]));
+    api.get<HomeworkItem[]>(`/children/${child.id}/homework`).then(setHomework).catch(() => setHomework([]));
   }, [child.id]);
 
   const absences = attendance?.filter((a) => a.status === "absent" && !a.justified).length ?? 0;
   const outstanding = invoices?.reduce((sum, inv) => sum + (inv.status !== "paid" ? inv.balance : 0), 0) ?? 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const upcomingHomework = homework.filter((h) => h.due_date >= today).slice(0, 4);
 
   return (
     <div className="border border-line rounded bg-white p-5">
@@ -75,6 +86,20 @@ function ChildCard({ child }: { child: Child }) {
         <Metric label="Absences non justifiées" value={attendance ? String(absences) : "—"} accent={absences > 0 ? "brick" : "pass"} />
         <Metric label="Solde dû" value={invoices ? `${outstanding.toLocaleString("fr-FR")} F` : "—"} accent={outstanding > 0 ? "ochre" : "pass"} />
       </div>
+
+      {upcomingHomework.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-line">
+          <p className="text-xs text-ink/50 uppercase tracking-wide font-semibold mb-2">Devoirs à venir</p>
+          <ul className="space-y-2">
+            {upcomingHomework.map((h) => (
+              <li key={h.id} className="flex items-center justify-between text-[13.5px]">
+                <span className="text-ink">{h.title}</span>
+                <span className="text-ink/40 text-xs">à rendre le {h.due_date}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
