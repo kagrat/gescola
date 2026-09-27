@@ -26,6 +26,16 @@ export default {
         brick: "#E1584F",    // coral-500 (alerte / impayé / absent)
         ink: "#1C2333",
         line: "rgba(28,35,51,0.10)",
+
+        // --- Couleurs d'accent par rôle (identité visuelle du tableau de
+        // bord et de la barre latérale — voir DashboardLayout.tsx
+        // ROLE_THEMES). Même forme que `navy` (deep/DEFAULT/light) pour
+        // rester interchangeables partout où `navy` est utilisé aujourd'hui.
+        forest: { deep: "#142E22", DEFAULT: "#1F5C3F", light: "#2D7A54" }, // Direction/Fondateur
+        plum: { deep: "#2E1F42", DEFAULT: "#4A2F6B", light: "#64408F" },   // Censeur
+        rust: { deep: "#4A2A10", DEFAULT: "#B35A1E", light: "#D97A35" },   // Surveillant
+        teal: { deep: "#0F3B3D", DEFAULT: "#1B6B6E", light: "#279194" },  // Enseignant
+        rose: { deep: "#4A1830", DEFAULT: "#A83A5E", light: "#C95580" },  // Parent
       },
       fontFamily: {
         display: ["Lora", "ui-serif", "Georgia", "serif"],

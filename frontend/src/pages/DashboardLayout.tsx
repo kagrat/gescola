@@ -18,6 +18,64 @@ const ROLE_LABELS: Record<string, string> = {
   parent: "Parent",
 };
 
+// Identité visuelle par rôle — même mise en page partout, une couleur
+// d'accent différente par fonction (barre latérale, élément actif, badge,
+// avatar), pour que chacun reconnaisse immédiatement « son » espace. Les
+// classes sont écrites en toutes lettres (jamais construites par
+// concaténation de chaîne) pour que le compilateur Tailwind les détecte à la
+// compilation — une classe assemblée dynamiquement ne serait pas générée.
+interface RoleTheme {
+  sidebar: string;
+  hover: string;
+  active: string;
+  avatarBg: string;
+  avatarText: string;
+  badgeGradient: string;
+  badgeText: string;
+}
+
+const DEFAULT_THEME: RoleTheme = {
+  sidebar: "bg-navy-deep", hover: "hover:bg-navy", active: "bg-navy",
+  avatarBg: "bg-navy-light", avatarText: "text-sky-200",
+  badgeGradient: "from-sky-200 to-sky", badgeText: "text-navy-deep",
+};
+
+const ROLE_THEMES: Record<string, RoleTheme> = {
+  // Fondateur : garde l'identité navy par défaut (c'est la couleur "maison"
+  // de GESCOLA) — il hérite de tout ce que fait la Direction, mais reste
+  // visuellement la figure d'autorité plutôt qu'une couleur métier dédiée.
+  founder: DEFAULT_THEME,
+  school_admin: {
+    sidebar: "bg-forest-deep", hover: "hover:bg-forest", active: "bg-forest",
+    avatarBg: "bg-forest-light", avatarText: "text-white",
+    badgeGradient: "from-emerald-200 to-forest-light", badgeText: "text-forest-deep",
+  },
+  censor: {
+    sidebar: "bg-plum-deep", hover: "hover:bg-plum", active: "bg-plum",
+    avatarBg: "bg-plum-light", avatarText: "text-white",
+    badgeGradient: "from-purple-200 to-plum-light", badgeText: "text-plum-deep",
+  },
+  supervisor: {
+    sidebar: "bg-rust-deep", hover: "hover:bg-rust", active: "bg-rust",
+    avatarBg: "bg-rust-light", avatarText: "text-white",
+    badgeGradient: "from-orange-200 to-rust-light", badgeText: "text-rust-deep",
+  },
+  teacher: {
+    sidebar: "bg-teal-deep", hover: "hover:bg-teal", active: "bg-teal",
+    avatarBg: "bg-teal-light", avatarText: "text-white",
+    badgeGradient: "from-cyan-200 to-teal-light", badgeText: "text-teal-deep",
+  },
+  parent: {
+    sidebar: "bg-rose-deep", hover: "hover:bg-rose", active: "bg-rose",
+    avatarBg: "bg-rose-light", avatarText: "text-white",
+    badgeGradient: "from-pink-200 to-rose-light", badgeText: "text-rose-deep",
+  },
+};
+
+function themeFor(role: string): RoleTheme {
+  return ROLE_THEMES[role] ?? DEFAULT_THEME;
+}
+
 // Navigation visible par rôle — chaque intervenant ne voit que ce qui relève
 // de sa fonction (cohérent avec la matrice de permissions du backend,
 // app/core/roles.py). Le Fondateur suit exactement la même navigation que la
@@ -82,12 +140,13 @@ function initialsOf(email: string): string {
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const navItems = navItemsFor(user?.role ?? "");
+  const theme = themeFor(user?.role ?? "");
 
   return (
     <div className="min-h-screen flex bg-paper">
-      <aside className="w-64 shrink-0 bg-navy-deep text-paper flex flex-col p-4">
+      <aside className={`w-64 shrink-0 ${theme.sidebar} text-paper flex flex-col p-4`}>
         <div className="flex items-center gap-2.5 px-1.5 pb-4">
-          <span className="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-200 to-sky flex items-center justify-center font-display font-bold text-navy-deep text-[15px] shrink-0">
+          <span className={`w-9 h-9 rounded-lg bg-gradient-to-br ${theme.badgeGradient} flex items-center justify-center font-display font-bold ${theme.badgeText} text-[15px] shrink-0`}>
             G
           </span>
           <div>
@@ -104,7 +163,7 @@ export default function DashboardLayout() {
               end={item.end}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-[10px] text-[13.5px] font-medium transition ${
-                  isActive ? "bg-navy text-paper" : "text-[#AEB6CB] hover:bg-navy hover:text-paper"
+                  isActive ? `${theme.active} text-paper` : `text-[#AEB6CB] ${theme.hover} hover:text-paper`
                 }`
               }
             >
@@ -115,7 +174,7 @@ export default function DashboardLayout() {
         </nav>
 
         <div className="border-t border-white/10 pt-3.5 mt-2.5 flex items-center gap-2.5">
-          <span className="w-[33px] h-[33px] rounded-lg bg-navy-light flex items-center justify-center font-display font-bold text-sky-200 text-xs shrink-0">
+          <span className={`w-[33px] h-[33px] rounded-lg ${theme.avatarBg} flex items-center justify-center font-display font-bold ${theme.avatarText} text-xs shrink-0`}>
             {user ? initialsOf(user.email) : ""}
           </span>
           <div className="min-w-0">
