@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import RequireRole from "../components/RequireRole";
@@ -203,6 +204,12 @@ function DisciplinePageContent() {
                 <button onClick={() => setSanctionFor(sanctionFor === inc.id ? null : inc.id)} className="text-ochre-dark underline underline-offset-2">
                   {sanctionFor === inc.id ? "Annuler" : "Ajouter une sanction"}
                 </button>
+                <Link
+                  to={`/messages?nouveau=1&eleve=${inc.student_id}&sujet=${encodeURIComponent(`Incident disciplinaire — ${CATEGORY_LABELS[inc.category] ?? inc.category}`)}`}
+                  className="text-navy underline underline-offset-2 hover:text-navy-light"
+                >
+                  Informer les parents
+                </Link>
               </div>
             )}
 

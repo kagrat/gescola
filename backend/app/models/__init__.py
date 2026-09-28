@@ -13,6 +13,7 @@ from app.models.timetable import TimetableSlot, Weekday  # noqa: F401
 from app.models.coursework import Homework, LessonLogEntry  # noqa: F401
 from app.models.discipline import Incident, Sanction  # noqa: F401
 from app.models.report_card import ReportCard, ReportCardAsset, ReportCardStatus, SubjectAppreciation  # noqa: F401
+from app.models.messaging import Announcement, Message, MessageThread, ThreadKind, ThreadParticipant  # noqa: F401
 from app.models.billing import (  # noqa: F401
     PlatformInvoice, PlatformInvoiceStatus, PlatformPayment, PlatformPaymentMethod, PlatformPlan,
     Subscription, SubscriptionStatus,

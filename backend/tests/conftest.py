@@ -45,6 +45,7 @@ def reset_rate_limiter():
     yield
 
 TABLES_TO_CLEAN = [
+    "messages", "thread_participants", "message_threads", "announcements",
     "report_card_assets",
     "report_cards", "subject_appreciations",
     "sanctions", "incidents",

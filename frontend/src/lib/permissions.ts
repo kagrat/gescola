@@ -25,6 +25,11 @@ export const CAN_MANAGE_DISCIPLINE = ["censor", "school_admin", "founder"];
 // ceux dont ils sont professeur principal — filtré côté serveur).
 export const CAN_MANAGE_BULLETINS = ["school_admin", "censor", "founder"];
 export const CAN_READ_BULLETINS = ["school_admin", "censor", "founder", "staff", "teacher"];
+// Messagerie école ↔ familles et annonces (miroir de app/core/roles.py).
+export const CAN_MESSAGE_GUARDIANS = ["school_admin", "founder", "censor", "supervisor", "staff", "accountant", "teacher"];
+export const CAN_USE_MESSAGING = [...CAN_MESSAGE_GUARDIANS, "parent"];
+export const CAN_PUBLISH_ANNOUNCEMENTS = ["school_admin", "founder", "censor", "staff"];
+export const CAN_READ_ANNOUNCEMENTS = CAN_USE_MESSAGING;
 export const CAN_MANAGE_GUARDIAN_LINKS = ["school_admin", "staff", "founder"];
 export const CAN_VIEW_REPORTS = ["school_admin", "founder"];
 export const CAN_VIEW_AUDIT_LOG = ["school_admin", "founder"];

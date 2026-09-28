@@ -330,13 +330,39 @@ function AccountantOverview() {
 
 function ParentOverview() {
   const { user } = useAuth();
+  const [unread, setUnread] = useState<number | null>(null);
+  const [announcements, setAnnouncements] = useState<{ id: string; title: string; class_name: string | null; created_at: string }[]>([]);
+  useEffect(() => {
+    api.get<{ unread: number }>("/messages/unread-count").then((r) => setUnread(r.unread)).catch(() => setUnread(null));
+    api.get<typeof announcements>("/announcements").then((list) => setAnnouncements(list.slice(0, 3))).catch(() => setAnnouncements([]));
+  }, []);
   return (
     <div className="px-10 py-10 max-w-5xl">
       <p className="text-sm text-ink/50">Bonjour</p>
-      <h1 className="font-display text-3xl font-medium text-ink mt-1">{user?.email.split("@")[0]}</h1>
+      <h1 className="font-display text-3xl font-medium text-ink mt-1">{user?.full_name ?? user?.email.split("@")[0]}</h1>
       <p className="mt-4 text-sm text-ink/60 max-w-md">
         Retrouvez les notes, présences et frais de scolarité de vos enfants dans « Mes enfants ».
       </p>
+      <QuickLinks links={[
+        { to: "/mes-enfants", label: "Mes enfants", description: "Notes, absences, bulletins, devoirs et frais de scolarité" },
+        { to: "/messages", label: unread ? `Messages (${unread} non lu${unread > 1 ? "s" : ""})` : "Messages", description: "Écrire à l'école, lire ses réponses et ses convocations" },
+      ]} />
+      {announcements.length > 0 && (
+        <section className="mt-10 border border-line rounded bg-white">
+          <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+            <h2 className="font-display text-lg text-ink">Dernières annonces</h2>
+            <Link to="/annonces" className="text-sm text-navy underline underline-offset-2">Tout voir</Link>
+          </div>
+          <ul className="divide-y divide-line">
+            {announcements.map((a) => (
+              <li key={a.id} className="px-5 py-3 flex items-center justify-between text-[14.5px]">
+                <span className="text-ink">{a.title}</span>
+                <span className="text-ink/40 text-xs">{a.class_name ?? "Établissement"} · {new Date(a.created_at).toLocaleDateString("fr-FR")}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

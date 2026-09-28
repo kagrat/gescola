@@ -27,6 +27,8 @@ import MyClassesPage from "./pages/MyClassesPage";
 import TimetablePage from "./pages/TimetablePage";
 import MyTimetablePage from "./pages/MyTimetablePage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
+import MessagesPage from "./pages/MessagesPage";
+import AnnouncementsPage from "./pages/AnnouncementsPage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -73,6 +75,8 @@ export default function App() {
             <Route path="cahier-de-texte" element={<CourseworkPage />} />
             <Route path="discipline" element={<DisciplinePage />} />
             <Route path="bulletins" element={<BulletinsPage />} />
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="annonces" element={<AnnouncementsPage />} />
             <Route path="classes-matieres" element={<AcademicPage />} />
             <Route path="affectations" element={<TeachingPage />} />
             <Route path="mes-classes" element={<MyClassesPage />} />

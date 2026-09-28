@@ -1,9 +1,12 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutGrid, Users, GraduationCap, Wallet, ShieldCheck, Bell, ScrollText, UtensilsCrossed, Library as LibraryIcon,
-  Settings, UserCircle, BookOpen, CalendarDays, CalendarClock, ShieldAlert, FileText,
+  Settings, UserCircle, BookOpen, CalendarDays, CalendarClock, ShieldAlert, FileText, MessageSquare, Megaphone,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
+import { api } from "../lib/api";
+import { CAN_USE_MESSAGING, roleCan } from "../lib/permissions";
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super administrateur",
@@ -81,7 +84,7 @@ function themeFor(role: string): RoleTheme {
 // app/core/roles.py). Le Fondateur suit exactement la même navigation que la
 // Direction : il en hérite tous les pouvoirs (voir lib/permissions.ts).
 function navItemsFor(role: string) {
-  const items: { to: string; label: string; end?: boolean; icon: typeof LayoutGrid }[] = [
+  const items: { to: string; label: string; end?: boolean; icon: typeof LayoutGrid; badge?: number }[] = [
     { to: "/", label: role === "network_admin" ? "Vue du groupe" : "Vue d'ensemble", end: true, icon: LayoutGrid },
   ];
 
@@ -93,6 +96,8 @@ function navItemsFor(role: string) {
 
   if (role === "parent") {
     items.push({ to: "/mes-enfants", label: "Mes enfants", icon: Users });
+    items.push({ to: "/messages", label: "Messages", icon: MessageSquare });
+    items.push({ to: "/annonces", label: "Annonces", icon: Megaphone });
     items.push({ to: "/notifications", label: "Notifications", icon: Bell });
     items.push({ to: "/profil", label: "Profil", icon: UserCircle });
     return items;
@@ -134,6 +139,8 @@ function navItemsFor(role: string) {
     items.push({ to: "/abonnement", label: "Mon abonnement", icon: Wallet });
     items.push({ to: "/audit", label: "Journal d'audit", icon: ScrollText });
   }
+  items.push({ to: "/messages", label: "Messages", icon: MessageSquare });
+  items.push({ to: "/annonces", label: "Annonces", icon: Megaphone });
   items.push({ to: "/profil", label: "Profil", icon: UserCircle });
   items.push({ to: "/securite", label: "Sécurité", icon: ShieldCheck });
   return items;
@@ -148,7 +155,29 @@ function initialsOf(email: string): string {
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
-  const navItems = navItemsFor(user?.role ?? "");
+  const location = useLocation();
+  const canMessage = roleCan(user?.role, CAN_USE_MESSAGING);
+  const [unread, setUnread] = useState(0);
+
+  // Pastille de messages non lus : relue toutes les 45 s, à chaque changement de page, et dès qu'une
+  // conversation est ouverte ou qu'un message est envoyé (événement « gescola:messages-changed »).
+  useEffect(() => {
+    if (!canMessage) return;
+    let cancelled = false;
+    const load = () => {
+      api.get<{ unread: number }>("/messages/unread-count").then((r) => { if (!cancelled) setUnread(r.unread); }).catch(() => undefined);
+    };
+    load();
+    const timer = window.setInterval(load, 45000);
+    window.addEventListener("gescola:messages-changed", load);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("gescola:messages-changed", load);
+    };
+  }, [canMessage, location.pathname]);
+
+  const navItems = navItemsFor(user?.role ?? "").map((i) => (i.to === "/messages" ? { ...i, badge: unread } : i));
   const theme = themeFor(user?.role ?? "");
 
   return (
@@ -177,7 +206,12 @@ export default function DashboardLayout() {
               }
             >
               <item.icon className="w-[17px] h-[17px] shrink-0 opacity-90" strokeWidth={1.8} />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badge ? (
+                <span aria-label={`${item.badge} message(s) non lu(s)`} className="min-w-[20px] h-5 px-1.5 rounded-full bg-brick text-white text-[11px] font-semibold flex items-center justify-center">
+                  {item.badge > 99 ? "99+" : item.badge}
+                </span>
+              ) : null}
             </NavLink>
           ))}
         </nav>

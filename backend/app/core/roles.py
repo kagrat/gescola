@@ -130,3 +130,23 @@ TENANT_INTERNAL_ROLES = (
 # bulletin_service) ; les parents voient les bulletins publiés de leurs enfants.
 CAN_MANAGE_BULLETINS = (UserRole.SCHOOL_ADMIN, UserRole.CENSOR, UserRole.FOUNDER)
 CAN_READ_BULLETINS = CAN_MANAGE_BULLETINS + (UserRole.STAFF, UserRole.TEACHER)
+
+# Messagerie école ↔ familles (voir messaging_service).
+#   * Écrire aux parents : le personnel qui a un motif de le faire. L'enseignant est
+#     limité aux élèves de SES classes (affectation ou professeur principal) ; les
+#     autres rôles de la liste peuvent écrire au sujet de n'importe quel élève.
+#   * Le parent écrit à un contact autorisé de SON enfant (jamais à n'importe qui).
+#   * Tous les participants peuvent répondre. Le Fondateur, propriétaire en retrait,
+#     n'est pas proposé comme contact aux parents.
+CAN_MESSAGE_GUARDIANS = (
+    UserRole.SCHOOL_ADMIN, UserRole.FOUNDER, UserRole.CENSOR, UserRole.SUPERVISOR, UserRole.STAFF,
+    UserRole.ACCOUNTANT, UserRole.TEACHER,
+)
+CAN_USE_MESSAGING = CAN_MESSAGE_GUARDIANS + (UserRole.PARENT,)
+# Rôles proposés aux parents comme contacts de l'établissement (en plus des enseignants de la classe).
+PARENT_CONTACT_ROLES = (
+    UserRole.SCHOOL_ADMIN, UserRole.CENSOR, UserRole.SUPERVISOR, UserRole.STAFF, UserRole.ACCOUNTANT,
+)
+# Annonces à l'ensemble des familles ou à une classe.
+CAN_PUBLISH_ANNOUNCEMENTS = (UserRole.SCHOOL_ADMIN, UserRole.FOUNDER, UserRole.CENSOR, UserRole.STAFF)
+CAN_READ_ANNOUNCEMENTS = CAN_USE_MESSAGING
