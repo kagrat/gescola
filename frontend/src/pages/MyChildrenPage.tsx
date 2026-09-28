@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { Download } from "lucide-react";
 
 interface Child {
   id: string;
@@ -20,6 +21,17 @@ interface Invoice {
   balance: number;
   status: string;
 }
+
+interface PublishedReportCard {
+  id: string;
+  term: string;
+  academic_year: string;
+  general_average: number | null;
+  rank: number | null;
+  class_size: number;
+}
+
+const TERM_LABELS: Record<string, string> = { T1: "1er trimestre", T2: "2e trimestre", T3: "3e trimestre" };
 
 interface HomeworkItem {
   id: string;
@@ -63,18 +75,30 @@ function ChildCard({ child }: { child: Child }) {
   const [attendance, setAttendance] = useState<Attendance[] | null>(null);
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [homework, setHomework] = useState<HomeworkItem[]>([]);
+  const [reportCards, setReportCards] = useState<PublishedReportCard[]>([]);
 
   useEffect(() => {
     api.get<Average>(`/children/${child.id}/average?term=${CURRENT_TERM}`).then(setAverage).catch(() => setAverage(null));
     api.get<Attendance[]>(`/children/${child.id}/attendance`).then(setAttendance).catch(() => setAttendance([]));
     api.get<Invoice[]>(`/children/${child.id}/invoices`).then(setInvoices).catch(() => setInvoices([]));
     api.get<HomeworkItem[]>(`/children/${child.id}/homework`).then(setHomework).catch(() => setHomework([]));
+    api.get<PublishedReportCard[]>(`/children/${child.id}/report-cards`).then(setReportCards).catch(() => setReportCards([]));
   }, [child.id]);
 
   const absences = attendance?.filter((a) => a.status === "absent" && !a.justified).length ?? 0;
   const outstanding = invoices?.reduce((sum, inv) => sum + (inv.status !== "paid" ? inv.balance : 0), 0) ?? 0;
   const today = new Date().toISOString().slice(0, 10);
   const upcomingHomework = homework.filter((h) => h.due_date >= today).slice(0, 4);
+
+  async function downloadReportCard(card: PublishedReportCard) {
+    const blob = await api.blob(`/children/${child.id}/report-cards/${card.id}/pdf`);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bulletin-${child.last_name}-${child.first_name}-${card.term}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="border border-line rounded bg-white p-5">
@@ -86,6 +110,27 @@ function ChildCard({ child }: { child: Child }) {
         <Metric label="Absences non justifiées" value={attendance ? String(absences) : "—"} accent={absences > 0 ? "brick" : "pass"} />
         <Metric label="Solde dû" value={invoices ? `${outstanding.toLocaleString("fr-FR")} F` : "—"} accent={outstanding > 0 ? "ochre" : "pass"} />
       </div>
+
+      {reportCards.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-line">
+          <p className="text-xs text-ink/50 uppercase tracking-wide font-semibold mb-2">Bulletins</p>
+          <ul className="space-y-2">
+            {reportCards.map((c) => (
+              <li key={c.id} className="flex items-center justify-between text-[13.5px]">
+                <span className="text-ink">
+                  {TERM_LABELS[c.term] ?? c.term} — {c.academic_year}
+                  {c.general_average !== null && (
+                    <span className="text-ink/50"> · moyenne {c.general_average.toFixed(2).replace(".", ",")} / 20{c.rank !== null && ` · rang ${c.rank}/${c.class_size}`}</span>
+                  )}
+                </span>
+                <button onClick={() => downloadReportCard(c)} className="flex items-center gap-1.5 text-navy hover:text-navy-light text-sm">
+                  <Download className="w-4 h-4" /> Télécharger
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {upcomingHomework.length > 0 && (
         <div className="mt-4 pt-4 border-t border-line">

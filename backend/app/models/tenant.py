@@ -1,6 +1,7 @@
 import uuid
 
 from sqlalchemy import Boolean, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -41,5 +42,15 @@ class Tenant(Base, TimestampMixin):
     ifu: Mapped[str | None] = mapped_column(String(50), nullable=True)
     address: Mapped[str | None] = mapped_column(String(300), nullable=True)
     logo_base64: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # --- Réglages du bulletin (voir bulletin_service / bulletin_pdf) ---
+    academic_year: Mapped[str | None] = mapped_column(String(9), nullable=True)  # ex: "2026-2027"
+    bulletin_motto: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    bulletin_authority_header: Mapped[str | None] = mapped_column(Text, nullable=True)  # ex: République du… / Ministère…
+    bulletin_place: Mapped[str | None] = mapped_column(String(100), nullable=True)  # « Fait à … »
+    bulletin_show_appreciations: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    bulletin_show_school_life: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    bulletin_show_head_teacher_signature: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    term_periods: Mapped[dict | None] = mapped_column(JSONB, nullable=True)  # {"T1": {"start": "...", "end": "..."}}
 
     users: Mapped[list["User"]] = relationship(back_populates="tenant", cascade="all, delete-orphan")

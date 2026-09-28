@@ -28,7 +28,7 @@ def _check_class_subject_or_404(db: Session, *, tenant_id: uuid.UUID, class_id: 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Matière introuvable.")
 
 
-def _check_assignment_restriction(
+def check_assignment_restriction(
     db: Session, *, tenant_id: uuid.UUID, teacher_id: uuid.UUID, actor_role: UserRole,
     class_id: uuid.UUID, subject_id: uuid.UUID,
 ) -> None:
@@ -52,7 +52,7 @@ def create_lesson_log_entry(
     db: Session, *, tenant_id: uuid.UUID, teacher_id: uuid.UUID, actor_role: UserRole, data: LessonLogEntryCreate,
 ) -> LessonLogEntry:
     _check_class_subject_or_404(db, tenant_id=tenant_id, class_id=data.class_id, subject_id=data.subject_id)
-    _check_assignment_restriction(
+    check_assignment_restriction(
         db, tenant_id=tenant_id, teacher_id=teacher_id, actor_role=actor_role,
         class_id=data.class_id, subject_id=data.subject_id,
     )
@@ -101,7 +101,7 @@ def create_homework(
     db: Session, *, tenant_id: uuid.UUID, teacher_id: uuid.UUID, actor_role: UserRole, data: HomeworkCreate,
 ) -> Homework:
     _check_class_subject_or_404(db, tenant_id=tenant_id, class_id=data.class_id, subject_id=data.subject_id)
-    _check_assignment_restriction(
+    check_assignment_restriction(
         db, tenant_id=tenant_id, teacher_id=teacher_id, actor_role=actor_role,
         class_id=data.class_id, subject_id=data.subject_id,
     )

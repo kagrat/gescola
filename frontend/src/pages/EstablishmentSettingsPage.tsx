@@ -10,7 +10,17 @@ interface Settings {
   ifu: string | null;
   address: string | null;
   logo_base64: string | null;
+  academic_year: string | null;
+  bulletin_motto: string | null;
+  bulletin_authority_header: string | null;
+  bulletin_place: string | null;
+  bulletin_show_appreciations: boolean;
+  bulletin_show_school_life: boolean;
+  bulletin_show_head_teacher_signature: boolean;
+  term_periods: Record<string, { start: string; end: string }> | null;
 }
+
+const TERM_ROWS: [string, string][] = [["T1", "1er trimestre"], ["T2", "2e trimestre"], ["T3", "3e trimestre"]];
 
 function fileToDataUri(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -55,6 +65,18 @@ export default function EstablishmentSettingsPage() {
     setSuccess(null);
     setSubmitting(true);
     const form = new FormData(e.currentTarget);
+    // Périodes : on n'envoie que les trimestres dont début ET fin sont renseignés.
+    const termPeriods: Record<string, { start: string; end: string }> = {};
+    for (const [key, label] of TERM_ROWS) {
+      const start = String(form.get(`${key}_start`) || "");
+      const end = String(form.get(`${key}_end`) || "");
+      if (start && end) termPeriods[key] = { start, end };
+      else if (start || end) {
+        setError(`${label} : renseignez la date de début ET la date de fin, ou laissez les deux vides.`);
+        setSubmitting(false);
+        return;
+      }
+    }
     try {
       await api.patch("/establishment/settings", {
         trade_name: form.get("trade_name") || null,
@@ -62,6 +84,14 @@ export default function EstablishmentSettingsPage() {
         ifu: form.get("ifu") || null,
         address: form.get("address") || null,
         logo_base64: logoPreview,
+        academic_year: form.get("academic_year") || null,
+        bulletin_motto: form.get("bulletin_motto") || null,
+        bulletin_authority_header: form.get("bulletin_authority_header") || null,
+        bulletin_place: form.get("bulletin_place") || null,
+        bulletin_show_appreciations: form.get("bulletin_show_appreciations") === "on",
+        bulletin_show_school_life: form.get("bulletin_show_school_life") === "on",
+        bulletin_show_head_teacher_signature: form.get("bulletin_show_head_teacher_signature") === "on",
+        term_periods: Object.keys(termPeriods).length > 0 ? termPeriods : null,
       });
       setSuccess("Paramètres enregistrés.");
       reload();
@@ -116,6 +146,54 @@ export default function EstablishmentSettingsPage() {
               {canEdit && <input type="file" accept="image/*" onChange={handleLogoChange} className="text-sm text-ink/60" />}
             </div>
           </div>
+
+          <div className="pt-5 mt-2 border-t border-line">
+            <h2 className="font-display text-lg text-ink">Bulletin de notes</h2>
+            <p className="text-xs text-ink/45 mt-0.5 mb-4">Ces réglages s'appliquent à l'impression de tous les bulletins de l'établissement.</p>
+
+            <div className="space-y-5">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field name="academic_year" label="Année scolaire" defaultValue={settings.academic_year} placeholder="2026-2027" />
+                <Field name="bulletin_place" label="Lieu (« Fait à … »)" defaultValue={settings.bulletin_place} placeholder="Cotonou" />
+              </div>
+              <Field name="bulletin_motto" label="Devise de l'établissement" defaultValue={settings.bulletin_motto} placeholder="Discipline - Travail - Réussite" />
+              <div>
+                <label htmlFor="bulletin_authority_header" className="block text-sm font-medium text-ink/80 mb-1.5">En-tête officiel (autorité de tutelle)</label>
+                <textarea
+                  id="bulletin_authority_header" name="bulletin_authority_header" rows={3} defaultValue={settings.bulletin_authority_header ?? ""}
+                  placeholder={"République du Bénin\nMinistère des Enseignements Secondaire, Technique et de la Formation Professionnelle"}
+                  className="w-full rounded border border-line bg-white px-3.5 py-2.5 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition resize-none"
+                />
+                <p className="text-xs text-ink/40 mt-1">Une ligne par ligne imprimée, en haut à droite du bulletin.</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-ink/80 mb-2">Affichage sur le bulletin</p>
+                <div className="space-y-2">
+                  <Toggle name="bulletin_show_appreciations" label="Appréciations (colonne « Appréciation du professeur » et appréciation générale)" defaultChecked={settings.bulletin_show_appreciations} />
+                  <Toggle name="bulletin_show_school_life" label="Vie scolaire (absences, retards, incidents)" defaultChecked={settings.bulletin_show_school_life} />
+                  <Toggle name="bulletin_show_head_teacher_signature" label="Signature du professeur principal (facultative)" defaultChecked={settings.bulletin_show_head_teacher_signature} />
+                </div>
+                <p className="text-xs text-ink/40 mt-2">Les signatures et cachets du Directeur et du Censeur figurent toujours sur le bulletin. La signature du professeur principal n'apparaît que si la classe en a un.</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-ink/80 mb-2">Périodes (facultatif)</p>
+                <div className="space-y-2">
+                  {TERM_ROWS.map(([key, label]) => (
+                    <div key={key} className="grid grid-cols-[130px_1fr_1fr] gap-3 items-center">
+                      <span className="text-sm text-ink/70">{label}</span>
+                      <input type="date" name={`${key}_start`} defaultValue={settings.term_periods?.[key]?.start ?? ""} aria-label={`${label} — début`}
+                        className="rounded border border-line bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy" />
+                      <input type="date" name={`${key}_end`} defaultValue={settings.term_periods?.[key]?.end ?? ""} aria-label={`${label} — fin`}
+                        className="rounded border border-line bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy" />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-ink/40 mt-2">Sert à compter les absences, retards et incidents de chaque trimestre. Sans dates, ils sont comptés depuis le 1er septembre.</p>
+              </div>
+            </div>
+          </div>
         </fieldset>
 
         {error && <p className="text-sm text-brick">{error}</p>}
@@ -140,5 +218,14 @@ function Field({ name, label, defaultValue, placeholder }: { name: string; label
         className="w-full rounded border border-line bg-white px-3.5 py-2.5 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition"
       />
     </div>
+  );
+}
+
+function Toggle({ name, label, defaultChecked }: { name: string; label: string; defaultChecked: boolean }) {
+  return (
+    <label className="flex items-start gap-2.5 text-sm text-ink/80 cursor-pointer">
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-0.5 w-4 h-4 accent-navy" />
+      <span>{label}</span>
+    </label>
   );
 }

@@ -1,13 +1,18 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
-import { CAN_MANAGE_REGISTRY, roleCan } from "../lib/permissions";
+import { CAN_MANAGE_REGISTRY, CAN_MANAGE_TEACHING, roleCan } from "../lib/permissions";
 
 interface SchoolClass {
   id: string;
   name: string;
   level: string;
   cycle: string;
+  head_teacher_id: string | null;
+}
+interface Teacher {
+  id: string;
+  full_name: string;
 }
 interface Subject {
   id: string;
@@ -26,6 +31,12 @@ const inputCls = "w-full rounded border border-line bg-white px-3.5 py-2 text-[1
 export default function AcademicPage() {
   const { user } = useAuth();
   const canManage = roleCan(user?.role, CAN_MANAGE_REGISTRY);
+  // Désigner le professeur principal : coordination pédagogique (direction, censeur, fondateur).
+  const canAssignHead = roleCan(user?.role, CAN_MANAGE_TEACHING);
+  // Le coefficient d'une matière pilote la moyenne générale des bulletins.
+  const canEditCoefficient = canManage || canAssignHead;
+  const [coefficientError, setCoefficientError] = useState<string | null>(null);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [showClassForm, setShowClassForm] = useState(false);
@@ -38,6 +49,27 @@ export default function AcademicPage() {
     api.get<Subject[]>("/subjects").then(setSubjects);
   }
   useEffect(reload, []);
+  useEffect(() => {
+    if (canAssignHead) api.get<Teacher[]>("/teachers").then(setTeachers).catch(() => setTeachers([]));
+  }, [canAssignHead]);
+
+  async function saveCoefficient(subject: Subject, value: string) {
+    setCoefficientError(null);
+    const parsed = Number(value.replace(",", "."));
+    if (!value || parsed === subject.default_coefficient) return;
+    try {
+      await api.patch(`/subjects/${subject.id}`, { default_coefficient: parsed });
+      reload();
+    } catch (err) {
+      setCoefficientError(err instanceof ApiError ? err.message : "Impossible de modifier le coefficient.");
+      reload();
+    }
+  }
+
+  async function setHeadTeacher(classId: string, teacherId: string) {
+    await api.patch(`/classes/${classId}`, { head_teacher_id: teacherId || null });
+    reload();
+  }
 
   async function handleCreateClass(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -114,16 +146,29 @@ export default function AcademicPage() {
                     <tr>
                       <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-3 border-b border-line">Classe</th>
                       <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-3 border-b border-line">Niveau</th>
+                      {canAssignHead && <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-3 border-b border-line">Professeur principal</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {classesByCycle[cycle].length === 0 && (
-                      <tr><td colSpan={2} className="px-4 py-4 text-ink/40">Aucune classe.</td></tr>
+                      <tr><td colSpan={canAssignHead ? 3 : 2} className="px-4 py-4 text-ink/40">Aucune classe.</td></tr>
                     )}
                     {classesByCycle[cycle].map((c) => (
                       <tr key={c.id} className="border-b border-line last:border-none">
                         <td className="px-4 py-2.5 font-medium">{c.name}</td>
                         <td className="px-4 py-2.5 text-ink/60">{c.level}</td>
+                        {canAssignHead && (
+                          <td className="px-4 py-2">
+                            <select
+                              value={c.head_teacher_id ?? ""} onChange={(e) => setHeadTeacher(c.id, e.target.value)}
+                              aria-label={`Professeur principal de ${c.name}`}
+                              className="rounded border border-line bg-white px-2.5 py-1.5 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy"
+                            >
+                              <option value="">— Aucun —</option>
+                              {teachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                            </select>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -170,12 +215,22 @@ export default function AcademicPage() {
               {subjects.map((s) => (
                 <tr key={s.id} className="border-b border-line last:border-none">
                   <td className="px-4 py-2.5 font-medium">{s.name}</td>
-                  <td className="px-4 py-2.5 text-ink/60">{s.default_coefficient}</td>
+                  <td className="px-4 py-2 text-ink/60">
+                    {canEditCoefficient ? (
+                      <input
+                        key={`${s.id}-${s.default_coefficient}`} type="number" step="0.5" min="0.5" max="20"
+                        defaultValue={s.default_coefficient} aria-label={`Coefficient de ${s.name}`}
+                        onBlur={(e) => saveCoefficient(s, e.target.value)}
+                        className="w-20 rounded border border-line bg-white px-2.5 py-1.5 text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy"
+                      />
+                    ) : s.default_coefficient}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {coefficientError && <p className="mt-2 text-sm text-brick">{coefficientError}</p>}
       </section>
     </div>
   );

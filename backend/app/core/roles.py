@@ -122,3 +122,11 @@ TENANT_INTERNAL_ROLES = (
     UserRole.SCHOOL_ADMIN, UserRole.CENSOR, UserRole.SUPERVISOR,
     UserRole.ACCOUNTANT, UserRole.STAFF, UserRole.TEACHER, UserRole.PARENT,
 )
+
+# Bulletins : génération, publication, appréciations générales. Le Censeur en
+# fait partie (il signe le bulletin et valide les notes). Le secrétariat
+# consulte et imprime les bulletins PUBLIÉS uniquement ; le professeur
+# principal d'une classe accède aux bulletins de SA classe (vérifié dans
+# bulletin_service) ; les parents voient les bulletins publiés de leurs enfants.
+CAN_MANAGE_BULLETINS = (UserRole.SCHOOL_ADMIN, UserRole.CENSOR, UserRole.FOUNDER)
+CAN_READ_BULLETINS = CAN_MANAGE_BULLETINS + (UserRole.STAFF, UserRole.TEACHER)

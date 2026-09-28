@@ -62,6 +62,8 @@ export default function StudentsPage() {
         first_name: form.get("first_name"),
         last_name: form.get("last_name"),
         class_id: form.get("class_id") || null,
+        matricule: form.get("matricule") || null,
+        gender: form.get("gender") || null,
         guardian_name: form.get("guardian_name") || null,
         guardian_phone: form.get("guardian_phone") || null,
       });
@@ -120,6 +122,18 @@ export default function StudentsPage() {
               >
                 <option value="">— Non affecté —</option>
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <Field name="matricule" label="Matricule" />
+            <div>
+              <label htmlFor="gender" className="block text-sm font-medium text-ink/80 mb-1.5">Sexe</label>
+              <select
+                id="gender" name="gender"
+                className="w-full rounded-lg border border-line bg-white px-3.5 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-sky/30 focus:border-sky transition"
+              >
+                <option value="">—</option>
+                <option value="male">Masculin</option>
+                <option value="female">Féminin</option>
               </select>
             </div>
             <Field name="guardian_name" label="Tuteur / tutrice" />

@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import date
 
-from sqlalchemy import Date, Enum, ForeignKey, String
+from sqlalchemy import Boolean, Date, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,6 +16,11 @@ class StudentStatus(str, enum.Enum):
     ARCHIVED = "archived"
 
 
+class StudentGender(str, enum.Enum):
+    MALE = "male"
+    FEMALE = "female"
+
+
 class Student(Base, TenantScopedMixin, TimestampMixin):
     __tablename__ = "students"
 
@@ -23,6 +28,13 @@ class Student(Base, TenantScopedMixin, TimestampMixin):
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Informations administratives imprimées sur le bulletin. Le matricule est
+    # unique par établissement quand il est renseigné (index partiel en migration).
+    matricule: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    gender: Mapped[StudentGender | None] = mapped_column(
+        Enum(StudentGender, name="student_gender", values_callable=lambda x: [e.value for e in x]), nullable=True
+    )
+    is_repeater: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     class_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("school_classes.id", ondelete="SET NULL"), nullable=True

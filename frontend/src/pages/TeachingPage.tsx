@@ -27,7 +27,7 @@ function TeachingPageContent() {
   const [error, setError] = useState<string | null>(null);
 
   function reload() {
-    api.get<StaffUser[]>("/users").then((all) => setTeachers(all.filter((u) => u.role === "teacher")));
+    api.get<StaffUser[]>("/teachers").then(setTeachers).catch(() => setTeachers([]));
     api.get<SchoolClass[]>("/classes").then(setClasses);
     api.get<Subject[]>("/subjects").then(setSubjects);
     api.get<Assignment[]>("/teacher-assignments").then(setAssignments);

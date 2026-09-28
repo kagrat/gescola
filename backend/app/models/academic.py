@@ -1,7 +1,8 @@
 import enum
 import uuid
 
-from sqlalchemy import Enum, Numeric, String
+from sqlalchemy import Enum, ForeignKey, Numeric, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base_class import Base, TenantScopedMixin, TimestampMixin, uuid_pk
@@ -22,6 +23,12 @@ class SchoolClass(Base, TenantScopedMixin, TimestampMixin):
     cycle: Mapped[SchoolCycle] = mapped_column(
         Enum(SchoolCycle, name="school_cycle", values_callable=lambda x: [e.value for e in x]),
         default=SchoolCycle.PRIMAIRE, nullable=False,
+    )
+    # Professeur principal de la classe (facultatif). Il rédige l'appréciation
+    # générale des bulletins de sa classe et, si l'établissement le souhaite,
+    # signe le bulletin.
+    head_teacher_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
 

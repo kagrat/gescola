@@ -40,7 +40,7 @@ function TimetablePageContent() {
       if (list.length > 0) setSelectedClass(list[0].id);
     });
     api.get<Subject[]>("/subjects").then(setSubjects);
-    api.get<StaffUser[]>("/users").then((all) => setTeachers(all.filter((u) => u.role === "teacher")));
+    api.get<StaffUser[]>("/teachers").then(setTeachers).catch(() => setTeachers([]));
   }, []);
 
   function reloadSlots() {

@@ -20,14 +20,18 @@ def test_weighted_average_calculation(client, make_tenant, make_user, auth_heade
     # Français : une note coeff 3 -> moyenne matière = 16
     client.post("/api/v1/grades", json={"student_id": student["id"], "subject_id": francais["id"], "term": "T1", "evaluation_label": "D1", "value": 16, "coefficient": 3}, headers=headers)
 
+    # Coefficients de MATIÈRE (fixés à la création dans _setup_school) : maths 4,
+    # français 3 — la moyenne générale d'un bulletin pondère par le coefficient
+    # de la matière, pas par la somme des coefficients de ses évaluations
+    # (voir results_service).
     resp = client.get(f"/api/v1/students/{student['id']}/average", params={"term": "T1"}, headers=headers)
     assert resp.status_code == 200
     body = resp.json()
     assert body["subject_averages"][maths["id"]] == 12.0
     assert body["subject_averages"][francais["id"]] == 16.0
-    # Moyenne générale pondérée par la somme des coefficients de chaque matière :
-    # maths pèse 8 (4+4) à 12, français pèse 3 à 16 -> (12*8 + 16*3) / 11 = 13.09
-    assert body["general_average"] == 13.09
+    # Moyenne générale pondérée par le coefficient de chaque matière :
+    # (12*4 + 16*3) / (4+3) = 96/7 = 13.71
+    assert body["general_average"] == 13.71
 
 
 def test_grade_value_out_of_range_is_rejected(client, make_tenant, make_user, auth_headers):

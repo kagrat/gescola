@@ -13,6 +13,7 @@ from app.schemas.academic import StudentCreate  # noqa: F401  (import conservé 
 from app.schemas.grade import GradeCreate, StudentAverageOut
 from app.services.academic_service import get_student_or_404
 from app.services.audit_service import log_action
+from app.services.results_service import subject_coefficients, weighted_general_average, weighted_subject_average
 from app.services.teaching_service import is_teacher_assigned, teacher_has_any_assignment
 
 
@@ -121,29 +122,26 @@ def update_grade(
 
 
 def compute_student_average(db: Session, *, tenant_id: uuid.UUID, student_id: uuid.UUID, term: str) -> StudentAverageOut:
+    """Moyenne d'un élève pour une période — mêmes règles que le bulletin
+    (voir results_service) : la moyenne générale pondère chaque matière par
+    SON coefficient de matière, pas par la somme de ses coefficients
+    d'évaluation. Une seule définition dans toute l'application, pour que la
+    fiche élève, le portail parent et le bulletin ne divergent jamais."""
     grades = list_grades(db, tenant_id=tenant_id, student_id=student_id, term=term)
 
     by_subject: dict[uuid.UUID, list[Grade]] = defaultdict(list)
     for g in grades:
         by_subject[g.subject_id].append(g)
 
-    subject_averages: dict[str, float] = {}
-    weighted_sum = 0.0
-    weight_total = 0.0
-
+    subject_averages: dict[uuid.UUID, float] = {}
     for subject_id, subject_grades in by_subject.items():
-        s_weighted = sum(float(g.value) * float(g.coefficient) for g in subject_grades)
-        s_weight = sum(float(g.coefficient) for g in subject_grades)
-        if s_weight == 0:
-            continue
-        subject_avg = round(s_weighted / s_weight, 2)
-        subject_averages[str(subject_id)] = subject_avg
-        # La moyenne générale pondère chaque matière par la somme de ses coefficients.
-        weighted_sum += subject_avg * s_weight
-        weight_total += s_weight
+        avg = weighted_subject_average(subject_grades)
+        if avg is not None:
+            subject_averages[subject_id] = avg
 
-    general_average = round(weighted_sum / weight_total, 2) if weight_total else 0.0
-
+    general = weighted_general_average(subject_averages, subject_coefficients(db, tenant_id))
     return StudentAverageOut(
-        student_id=student_id, term=term, subject_averages=subject_averages, general_average=general_average
+        student_id=student_id, term=term,
+        subject_averages={str(k): v for k, v in subject_averages.items()},
+        general_average=general if general is not None else 0.0,
     )

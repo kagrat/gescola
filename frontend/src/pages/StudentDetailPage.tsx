@@ -15,6 +15,10 @@ interface Student {
   last_name: string;
   class_id: string | null;
   status: string;
+  date_of_birth: string | null;
+  matricule: string | null;
+  gender: "male" | "female" | null;
+  is_repeater: boolean;
 }
 interface Subject {
   id: string;
@@ -92,12 +96,72 @@ export default function StudentDetailPage() {
         <ClassAssignment studentId={studentId} classId={student.class_id} onUpdated={reloadStudent} />
       )}
 
+      <StudentInfo student={student} canEdit={roleCan(user?.role, CAN_MANAGE_REGISTRY)} onUpdated={reloadStudent} />
+
       {roleCan(user?.role, CAN_READ_GRADES) && <GradesSection studentId={studentId} role={user?.role} />}
       {roleCan(user?.role, CAN_MANAGE_ATTENDANCE) && <AttendanceSection studentId={studentId} />}
       {roleCan(user?.role, CAN_MANAGE_FINANCE) && <FinanceSection studentId={studentId} />}
       {roleCan(user?.role, CAN_MANAGE_REGISTRY) && <LibrarySection studentId={studentId} />}
       {roleCan(user?.role, CAN_MANAGE_FINANCE) && <CanteenSection studentId={studentId} />}
       {roleCan(user?.role, CAN_READ_INCIDENTS) && <DisciplineSection studentId={studentId} />}
+    </div>
+  );
+}
+
+// ---------------- Informations administratives (imprimées sur le bulletin) ----------------
+
+function StudentInfo({ student, canEdit, onUpdated }: { student: Student; canEdit: boolean; onUpdated: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const genderLabel = student.gender === "male" ? "Masculin" : student.gender === "female" ? "Féminin" : "—";
+
+  async function handleSave(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    try {
+      await api.patch(`/students/${student.id}`, {
+        matricule: form.get("matricule") || null,
+        gender: form.get("gender") || null,
+        date_of_birth: form.get("date_of_birth") || null,
+        is_repeater: form.get("is_repeater") === "on",
+      });
+      setEditing(false);
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible d'enregistrer.");
+    }
+  }
+
+  const fieldCls = "rounded border border-line bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy";
+  return (
+    <div className="mt-4 text-sm">
+      {!editing ? (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-ink/70">
+          <span>Matricule : <b className="text-ink">{student.matricule ?? "—"}</b></span>
+          <span>Sexe : <b className="text-ink">{genderLabel}</b></span>
+          <span>Né(e) le : <b className="text-ink">{student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString("fr-FR") : "—"}</b></span>
+          <span>Redoublant : <b className="text-ink">{student.is_repeater ? "Oui" : "Non"}</b></span>
+          {canEdit && <button onClick={() => setEditing(true)} className="text-navy underline underline-offset-2 hover:text-navy-light">Modifier</button>}
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="border border-line rounded bg-white p-4 grid sm:grid-cols-4 gap-3 items-end">
+          <div><label className="block text-xs font-medium text-ink/60 mb-1">Matricule</label><input name="matricule" defaultValue={student.matricule ?? ""} className={`${fieldCls} w-full`} /></div>
+          <div>
+            <label className="block text-xs font-medium text-ink/60 mb-1">Sexe</label>
+            <select name="gender" defaultValue={student.gender ?? ""} className={`${fieldCls} w-full`}>
+              <option value="">—</option><option value="male">Masculin</option><option value="female">Féminin</option>
+            </select>
+          </div>
+          <div><label className="block text-xs font-medium text-ink/60 mb-1">Date de naissance</label><input name="date_of_birth" type="date" defaultValue={student.date_of_birth ?? ""} className={`${fieldCls} w-full`} /></div>
+          <label className="flex items-center gap-2 text-ink/80 pb-2"><input type="checkbox" name="is_repeater" defaultChecked={student.is_repeater} className="w-4 h-4 accent-navy" /> Redoublant</label>
+          {error && <p className="sm:col-span-4 text-brick">{error}</p>}
+          <div className="sm:col-span-4 flex gap-3">
+            <button type="submit" className="rounded bg-ochre text-navy-deep font-medium px-4 py-2 hover:bg-ochre-dark transition">Enregistrer</button>
+            <button type="button" onClick={() => setEditing(false)} className="text-ink/60 px-2">Annuler</button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

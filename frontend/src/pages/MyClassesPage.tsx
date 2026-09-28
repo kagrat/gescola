@@ -16,7 +16,7 @@ export default function MyClassesPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selected, setSelected] = useState<{ classId: string; subjectId: string } | null>(null);
-  const [tab, setTab] = useState<"notes" | "cahier" | "devoirs">("notes");
+  const [tab, setTab] = useState<"notes" | "apprec" | "cahier" | "devoirs">("notes");
 
   useEffect(() => {
     api.get<Assignment[]>("/teacher-assignments").then((all) => {
@@ -70,6 +70,7 @@ export default function MyClassesPage() {
           <div className="mt-6 flex gap-1 border-b border-line">
             {([
               ["notes", "Notes"],
+              ["apprec", "Appréciations"],
               ["cahier", "Cahier de texte"],
               ["devoirs", "Devoirs"],
             ] as const).map(([key, label]) => (
@@ -89,6 +90,12 @@ export default function MyClassesPage() {
             <BulkGradeEntry
               classId={selected.classId}
               subjectId={selected.subjectId}
+              students={students.filter((s) => s.class_id === selected.classId)}
+            />
+          )}
+          {tab === "apprec" && (
+            <AppreciationsPanel
+              classId={selected.classId} subjectId={selected.subjectId}
               students={students.filter((s) => s.class_id === selected.classId)}
             />
           )}
@@ -354,6 +361,91 @@ function HomeworkPanel({ classId, subjectId }: { classId: string; subjectId: str
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ---------------- Appréciations (colonne « Appréciation du professeur » du bulletin) ----------------
+
+function AppreciationsPanel({ classId, subjectId, students }: { classId: string; subjectId: string; students: Student[] }) {
+  const [term, setTerm] = useState("T1");
+  const [initial, setInitial] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setResult(null);
+    setError(null);
+    api
+      .get<{ student_id: string; text: string }[]>(`/appreciations?class_id=${classId}&subject_id=${subjectId}&term=${term}`)
+      .then((list) => {
+        const map = Object.fromEntries(list.map((a) => [a.student_id, a.text]));
+        setInitial(map);
+        setValues(map);
+      })
+      .catch(() => { setInitial({}); setValues({}); });
+  }, [classId, subjectId, term]);
+
+  async function save() {
+    setError(null);
+    setResult(null);
+    const changed = students.filter((s) => (values[s.id] ?? "") !== (initial[s.id] ?? ""));
+    if (changed.length === 0) { setResult("Aucune modification à enregistrer."); return; }
+    setSaving(true);
+    let done = 0;
+    for (const s of changed) {
+      try {
+        await api.put("/appreciations", { student_id: s.id, subject_id: subjectId, term, text: values[s.id] ?? "" });
+        done += 1;
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "Impossible d'enregistrer une appréciation.");
+      }
+    }
+    setSaving(false);
+    setInitial((prev) => ({ ...prev, ...Object.fromEntries(changed.map((s) => [s.id, values[s.id] ?? ""])) }));
+    setResult(`${done} appréciation(s) enregistrée(s).`);
+  }
+
+  return (
+    <div className="mt-6 border border-line rounded bg-white p-6">
+      <div className="flex items-end justify-between gap-4">
+        <div className="w-44">
+          <label className="block text-sm font-medium text-ink/80 mb-1.5">Période</label>
+          <select value={term} onChange={(e) => setTerm(e.target.value)} className="w-full rounded border border-line bg-white px-3 py-2 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy">
+            {TERMS.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <p className="text-xs text-ink/45 max-w-sm text-right">Courte appréciation par élève (300 caractères max.), imprimée dans la colonne « Appréciation du professeur » du bulletin.</p>
+      </div>
+
+      <div className="mt-5 border border-line rounded overflow-hidden">
+        <table className="w-full text-[14.5px]">
+          <tbody className="divide-y divide-line">
+            {students.length === 0 && <tr><td className="px-4 py-6 text-ink/50">Aucun élève dans cette classe pour l'instant.</td></tr>}
+            {students.map((s) => (
+              <tr key={s.id}>
+                <td className="px-4 py-2 text-ink w-56">{s.first_name} {s.last_name}</td>
+                <td className="px-4 py-2">
+                  <input
+                    value={values[s.id] ?? ""} maxLength={300} placeholder="Ex : Bon travail, continuez ainsi."
+                    onChange={(e) => setValues((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                    className="w-full rounded border border-line px-3 py-1.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {error && <p className="mt-3 text-sm text-brick">{error}</p>}
+      {result && <p className="mt-3 text-sm text-pass">{result}</p>}
+      {students.length > 0 && (
+        <button onClick={save} disabled={saving} className="mt-4 rounded bg-ochre text-navy-deep text-sm font-medium px-5 py-2.5 hover:bg-ochre-dark transition disabled:opacity-60">
+          {saving ? "Enregistrement…" : "Enregistrer les appréciations"}
+        </button>
+      )}
     </div>
   );
 }

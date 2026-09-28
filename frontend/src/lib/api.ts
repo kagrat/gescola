@@ -27,12 +27,15 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}, retried = false): Promise<T> {
-  const headers = new Headers(options.headers);
+type RequestOptions = RequestInit & { responseType?: "json" | "blob" };
+
+async function request<T>(path: string, options: RequestOptions = {}, retried = false): Promise<T> {
+  const { responseType = "json", ...fetchOptions } = options;
+  const headers = new Headers(fetchOptions.headers);
   headers.set("Content-Type", "application/json");
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
 
-  const resp = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const resp = await fetch(`${API_BASE}${path}`, { ...fetchOptions, headers });
 
   if (resp.status === 401 && refreshToken && !retried) {
     // Tentative de rafraîchissement transparent du token avant d'abandonner.
@@ -62,6 +65,7 @@ async function request<T>(path: string, options: RequestInit = {}, retried = fal
   }
 
   if (resp.status === 204) return undefined as T;
+  if (responseType === "blob") return (await resp.blob()) as T;
   return resp.json();
 }
 
@@ -71,5 +75,9 @@ export const api = {
     request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
+  put: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: "PUT", body: body ? JSON.stringify(body) : undefined }),
   del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  /** Téléchargement authentifié d'un fichier (ex. PDF) — un simple lien <a href> n'enverrait pas le jeton. */
+  blob: (path: string) => request<Blob>(path, { method: "GET", responseType: "blob" }),
 };

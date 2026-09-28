@@ -20,6 +20,11 @@ export const CAN_READ_COURSEWORK = ["teacher", "school_admin", "founder", "censo
 export const CAN_REPORT_INCIDENT = ["teacher", "supervisor", "censor", "school_admin", "founder"];
 export const CAN_READ_INCIDENTS = CAN_REPORT_INCIDENT;
 export const CAN_MANAGE_DISCIPLINE = ["censor", "school_admin", "founder"];
+// Bulletins : gérer (générer, publier, décision du conseil) = direction, censeur,
+// fondateur. Lire : + secrétariat (bulletins publiés) et enseignants (seulement
+// ceux dont ils sont professeur principal — filtré côté serveur).
+export const CAN_MANAGE_BULLETINS = ["school_admin", "censor", "founder"];
+export const CAN_READ_BULLETINS = ["school_admin", "censor", "founder", "staff", "teacher"];
 export const CAN_MANAGE_GUARDIAN_LINKS = ["school_admin", "staff", "founder"];
 export const CAN_VIEW_REPORTS = ["school_admin", "founder"];
 export const CAN_VIEW_AUDIT_LOG = ["school_admin", "founder"];

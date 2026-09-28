@@ -159,6 +159,7 @@ function DirectionOverview() {
         <QuickLinks links={[
           { to: "/eleves", label: "Élèves", description: "Voir et inscrire des élèves" },
           { to: "/personnel", label: "Personnel", description: "Gérer les comptes de l'établissement" },
+          { to: "/bulletins", label: "Bulletins", description: "Générer, compléter et publier les bulletins de notes" },
           { to: "/rapports", label: "Rapports", description: "Finances, notes, présences en un coup d'œil" },
           { to: "/parametres", label: "Paramètres établissement", description: "Identité légale, logo" },
         ]} />
@@ -265,6 +266,7 @@ function CensorOverview() {
         <QuickLinks links={[
           { to: "/affectations", label: "Affectations", description: "Rattacher les enseignants à leurs classes" },
           { to: "/emploi-du-temps", label: "Emploi du temps", description: "Construire les emplois du temps" },
+          { to: "/bulletins", label: "Bulletins", description: "Générer, compléter et publier les bulletins de notes" },
           { to: "/discipline", label: "Discipline", description: "Traiter les incidents et poser les sanctions" },
           { to: "/eleves", label: "Élèves", description: "Consulter et verrouiller les notes" },
           { to: "/classes-matieres", label: "Classes & Matières", description: "Consulter le référentiel" },

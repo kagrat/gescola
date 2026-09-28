@@ -45,6 +45,7 @@ def reset_rate_limiter():
     yield
 
 TABLES_TO_CLEAN = [
+    "report_cards", "subject_appreciations",
     "sanctions", "incidents",
     "homework", "lesson_log_entries",
     "timetable_slots", "teacher_assignments",
@@ -126,7 +127,7 @@ def make_network():
 def make_user(make_tenant):
     def _make(
         *, tenant=None, network=None, role: UserRole = UserRole.SCHOOL_ADMIN, email: str | None = None,
-        password: str = "CorrectHorse#123",
+        password: str = "CorrectHorse#123", full_name: str = "Utilisateur Test",
     ) -> tuple[User, str]:
         if role not in (UserRole.SUPER_ADMIN, UserRole.NETWORK_ADMIN) and tenant is None:
             tenant = make_tenant()
@@ -137,7 +138,7 @@ def make_user(make_tenant):
                 network_id=network.id if network else None,
                 email=email or f"user-{uuid.uuid4().hex[:8]}@example.com",
                 hashed_password=hash_password(password),
-                full_name="Utilisateur Test",
+                full_name=full_name,
                 role=role,
             )
             db.add(user)
