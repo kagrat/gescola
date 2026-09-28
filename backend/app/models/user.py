@@ -65,7 +65,7 @@ class User(Base, TimestampMixin):
     signature_base64: Mapped[str | None] = mapped_column(Text, nullable=True)
     stamp_base64: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    tenant: Mapped["Tenant"] = relationship(back_populates="users")
+    tenant: Mapped["Tenant"] = relationship(back_populates="users", foreign_keys=[tenant_id])
 
     __table_args__ = (
         # Un e-mail est unique PAR établissement (deux écoles peuvent avoir

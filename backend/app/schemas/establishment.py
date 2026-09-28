@@ -45,6 +45,8 @@ class EstablishmentSettingsOut(BaseModel):
     bulletin_show_school_life: bool
     bulletin_show_head_teacher_signature: bool
     term_periods: dict[str, TermPeriod] | None
+    bulletin_director_user_id: uuid.UUID | None
+    bulletin_censor_user_id: uuid.UUID | None
 
 
 class EstablishmentSettingsUpdate(BaseModel):
@@ -61,6 +63,8 @@ class EstablishmentSettingsUpdate(BaseModel):
     bulletin_show_school_life: bool | None = None
     bulletin_show_head_teacher_signature: bool | None = None
     term_periods: dict[str, TermPeriod] | None = None
+    bulletin_director_user_id: uuid.UUID | None = None
+    bulletin_censor_user_id: uuid.UUID | None = None
 
     @field_validator("logo_base64")
     @classmethod

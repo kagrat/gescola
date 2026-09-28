@@ -211,8 +211,9 @@ function BulletinsPageContent() {
 
       {canManage && (
         <p className="mt-4 text-xs text-ink/45 max-w-3xl">
-          Un bulletin ne peut être publié que lorsque toutes les notes de l'élève pour la période sont verrouillées. La publication fige les chiffres :
-          un bulletin publié n'est plus modifié par une nouvelle génération — dépubliez-le d'abord pour le corriger.
+          Un bulletin ne peut être publié que lorsque toutes les notes de l'élève pour la période sont verrouillées. La publication fige le bulletin en entier — chiffres,
+          identité de l'établissement, sections affichées, logo, signatures et cachets : il se réimprime toujours à l'identique. Pour le corriger
+          (ou prendre en compte un changement de signature), dépubliez-le puis publiez-le à nouveau.
         </p>
       )}
 

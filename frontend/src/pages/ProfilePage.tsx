@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
+import { checkImageFile, IMAGE_ACCEPT } from "../lib/images";
 import { useAuth } from "../auth/AuthContext";
 
 interface MySignature {
@@ -37,10 +38,13 @@ export default function ProfilePage() {
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>, setPreview: (v: string) => void) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 1_000_000) {
-      setError("Image trop volumineuse (1 Mo maximum).");
+    const problem = checkImageFile(file);
+    if (problem) {
+      setError(problem);
+      e.target.value = "";
       return;
     }
+    setError(null);
     setPreview(await fileToDataUri(file));
   }
 
@@ -99,7 +103,7 @@ function ImageField({ label, preview, onChange }: { label: string; preview: stri
             Aucun{label === "Signature" ? "e" : ""}
           </div>
         )}
-        <input type="file" accept="image/*" onChange={onChange} className="text-sm text-ink/60" />
+        <input type="file" accept={IMAGE_ACCEPT} onChange={onChange} className="text-sm text-ink/60" />
       </div>
     </div>
   );

@@ -12,11 +12,13 @@ Principes :
     principal ; le secrétariat ne voit que les bulletins publiés ; un parent
     ne voit que les bulletins publiés de ses enfants rattachés.
 """
+import hashlib
 import uuid
 from datetime import date, datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.core.roles import CAN_MANAGE_BULLETINS
@@ -24,7 +26,7 @@ from app.models.academic import SchoolClass, Subject
 from app.models.attendance import Attendance, AttendanceStatus
 from app.models.discipline import Incident
 from app.models.grade import Grade
-from app.models.report_card import ReportCard, ReportCardStatus, SubjectAppreciation
+from app.models.report_card import ReportCard, ReportCardAsset, ReportCardStatus, SubjectAppreciation
 from app.models.student import Student
 from app.models.teaching import TeacherAssignment
 from app.models.tenant import Tenant
@@ -66,18 +68,34 @@ def _term_window(tenant: Tenant, term: str, year: str, today: date) -> tuple[dat
     return date(int(year[:4]), 9, 1), today, False
 
 
-def _resolve_signers(db: Session, tenant_id: uuid.UUID, school_class: SchoolClass) -> dict:
-    """Le Directeur = le plus ancien compte Direction actif (à défaut, le
-    Fondateur) ; le Censeur = le plus ancien censeur actif ; le professeur
-    principal = celui désigné sur la classe."""
+def _resolve_signers(db: Session, tenant: Tenant, school_class: SchoolClass) -> dict:
+    """Signataires du bulletin. Le Directeur et le Censeur sont ceux que
+    l'établissement a DÉSIGNÉS (Paramètres → Bulletin), s'ils sont toujours
+    actifs et du bon rôle ; à défaut, le plus ancien compte actif du rôle
+    (Direction, puis Fondateur ; Censeur). Le professeur principal est celui
+    désigné sur la classe."""
+    tenant_id = tenant.id
+
+    def designated(user_id: uuid.UUID | None, roles: tuple[UserRole, ...]) -> User | None:
+        if user_id is None:
+            return None
+        return db.execute(
+            select(User).where(
+                User.id == user_id, User.tenant_id == tenant_id, User.role.in_(roles), User.is_active.is_(True)
+            )
+        ).scalar_one_or_none()
+
     def oldest(role: UserRole) -> User | None:
         return db.execute(
             select(User).where(User.tenant_id == tenant_id, User.role == role, User.is_active.is_(True))
             .order_by(User.created_at)
         ).scalars().first()
 
-    director = oldest(UserRole.SCHOOL_ADMIN) or oldest(UserRole.FOUNDER)
-    censor = oldest(UserRole.CENSOR)
+    director = (
+        designated(tenant.bulletin_director_user_id, (UserRole.SCHOOL_ADMIN, UserRole.FOUNDER))
+        or oldest(UserRole.SCHOOL_ADMIN) or oldest(UserRole.FOUNDER)
+    )
+    censor = designated(tenant.bulletin_censor_user_id, (UserRole.CENSOR,)) or oldest(UserRole.CENSOR)
     head = None
     if school_class.head_teacher_id:
         head = db.execute(
@@ -222,7 +240,7 @@ def generate_report_cards(
         ).scalars().all()
     }
     subject_ids = _class_subject_ids(db, tenant_id, class_id, results)
-    signers = _resolve_signers(db, tenant_id, school_class)
+    signers = _resolve_signers(db, tenant, school_class)
 
     created = updated = skipped = 0
     for student in students:
@@ -369,7 +387,7 @@ def _refresh_snapshot(db: Session, tenant: Tenant, card: ReportCard) -> None:
     card.snapshot = _build_snapshot(
         db, tenant=tenant, school_class=school_class, student=student, results=results,
         subject_ids=_class_subject_ids(db, tenant.id, card.class_id, results), term=card.term,
-        year=card.academic_year, signers=_resolve_signers(db, tenant.id, school_class), today=date.today(),
+        year=card.academic_year, signers=_resolve_signers(db, tenant, school_class), today=date.today(),
     )
     card.generated_at = _now()
 
@@ -399,12 +417,14 @@ def publish_report_card(db: Session, *, tenant_id: uuid.UUID, actor_id: uuid.UUI
             status_code=status.HTTP_409_CONFLICT,
             detail=f"{unlocked} note(s) de cette période ne sont pas encore verrouillées : validez les notes avant de publier.",
         )
+    _freeze(db, tenant, card)  # identité, réglages et images : le bulletin se réimprimera à l'identique
     card.status = ReportCardStatus.PUBLISHED
     card.published_at = _now()
     card.published_by = actor_id
     log_action(
         db, tenant_id=tenant_id, actor_user_id=actor_id, action="report_card.published",
-        target_type="ReportCard", target_id=str(card.id), metadata={"student_id": str(card.student_id), "term": card.term},
+        target_type="ReportCard", target_id=str(card.id),
+        metadata={"student_id": str(card.student_id), "term": card.term, "frozen": True},
     )
     db.commit()
     db.refresh(card)
@@ -422,6 +442,7 @@ def unpublish_report_card(db: Session, *, tenant_id: uuid.UUID, actor_id: uuid.U
     card.status = ReportCardStatus.DRAFT
     card.published_at = None
     card.published_by = None
+    card.frozen = None  # redevient un brouillon : identité et images seront relues à la prochaine publication
     log_action(
         db, tenant_id=tenant_id, actor_user_id=actor_id, action="report_card.unpublished",
         target_type="ReportCard", target_id=str(card.id), metadata={"student_id": str(card.student_id), "term": card.term},
@@ -523,12 +544,8 @@ def list_appreciations(
 
 # ---------------- PDF ----------------
 
-def render_report_card_pdf(db: Session, *, tenant_id: uuid.UUID, card: ReportCard) -> bytes:
-    """Assemble réglages d'affichage + images actuels et produit le PDF.
-    Les chiffres viennent du snapshot figé ; l'identité de l'établissement,
-    les sections visibles et les images (logo, signatures, cachets) sont lus
-    à l'instant de l'impression."""
-    tenant = db.get(Tenant, tenant_id)
+def _live_render_inputs(db: Session, tenant: Tenant, card: ReportCard) -> tuple[dict, dict]:
+    """Réglages d'affichage et images tels qu'ils sont MAINTENANT."""
     signers = card.snapshot.get("signers", {})
 
     def user_images(key: str) -> tuple[str | None, str | None]:
@@ -536,7 +553,7 @@ def render_report_card_pdf(db: Session, *, tenant_id: uuid.UUID, card: ReportCar
         if not ref:
             return None, None
         user = db.execute(
-            select(User).where(User.id == uuid.UUID(ref["user_id"]), User.tenant_id == tenant_id)
+            select(User).where(User.id == uuid.UUID(ref["user_id"]), User.tenant_id == tenant.id)
         ).scalar_one_or_none()
         return (user.signature_base64, user.stamp_base64) if user else (None, None)
 
@@ -554,7 +571,52 @@ def render_report_card_pdf(db: Session, *, tenant_id: uuid.UUID, card: ReportCar
         "logo": tenant.logo_base64, "director_signature": director_sig, "director_stamp": director_stamp,
         "censor_signature": censor_sig, "censor_stamp": censor_stamp, "head_signature": head_sig, "head_stamp": head_stamp,
     }
+    return settings, images
+
+
+def _freeze(db: Session, tenant: Tenant, card: ReportCard) -> None:
+    """Fige identité, réglages d'affichage et images au moment de la
+    publication. Les images sont rangées par empreinte dans ReportCardAsset
+    (une seule copie par image et par établissement)."""
+    settings, images = _live_render_inputs(db, tenant, card)
+    hashes: dict[str, str | None] = {}
+    for key, data_uri in images.items():
+        if not data_uri:
+            hashes[key] = None
+            continue
+        digest = hashlib.sha256(data_uri.encode("utf-8")).hexdigest()
+        db.execute(
+            pg_insert(ReportCardAsset)
+            .values(id=uuid.uuid4(), tenant_id=tenant.id, sha256=digest, data_uri=data_uri, created_at=_now(), updated_at=_now())
+            .on_conflict_do_nothing(constraint="uq_report_card_asset")
+        )
+        hashes[key] = digest
+    card.frozen = {"settings": settings, "images": hashes}
+
+
+def _frozen_render_inputs(db: Session, tenant_id: uuid.UUID, card: ReportCard) -> tuple[dict, dict]:
+    frozen = card.frozen
+    wanted = {h for h in frozen["images"].values() if h}
+    assets = {}
+    if wanted:
+        assets = {
+            a.sha256: a.data_uri
+            for a in db.execute(
+                select(ReportCardAsset).where(ReportCardAsset.tenant_id == tenant_id, ReportCardAsset.sha256.in_(wanted))
+            ).scalars().all()
+        }
+    return frozen["settings"], {key: (assets.get(h) if h else None) for key, h in frozen["images"].items()}
+
+
+def render_report_card_pdf(db: Session, *, tenant_id: uuid.UUID, card: ReportCard) -> bytes:
+    """Produit le PDF. Un bulletin PUBLIÉ est rendu depuis ses données figées
+    (chiffres, identité, réglages, images) : il est identique à chaque
+    impression. Un brouillon utilise l'état courant de l'établissement."""
     published = card.status == ReportCardStatus.PUBLISHED
+    if published and card.frozen:
+        settings, images = _frozen_render_inputs(db, tenant_id, card)
+    else:
+        settings, images = _live_render_inputs(db, db.get(Tenant, tenant_id), card)
     return build_report_card_pdf(
         snapshot=card.snapshot, settings=settings, images=images, principal_comment=card.principal_comment,
         council_decision=card.council_decision, is_published=published,

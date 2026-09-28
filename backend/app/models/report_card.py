@@ -68,5 +68,24 @@ class ReportCard(Base, TenantScopedMixin, TimestampMixin):
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     published_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    # Rempli à la publication (et vidé à la dépublication) : identité de
+    # l'établissement, réglages d'affichage, et empreintes SHA-256 des images
+    # (logo, signatures, cachets) enregistrées dans ReportCardAsset. Un bulletin
+    # publié se réimprime ainsi à l'identique, quoi qu'il arrive ensuite.
+    frozen: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     __table_args__ = (UniqueConstraint("student_id", "term", "academic_year", name="uq_report_card_student_term"),)
+
+
+class ReportCardAsset(Base, TenantScopedMixin, TimestampMixin):
+    """Image figée d'un bulletin publié, adressée par son empreinte SHA-256 :
+    des centaines de bulletins qui portent la même signature n'en stockent
+    qu'un exemplaire par établissement."""
+
+    __tablename__ = "report_card_assets"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    data_uri: Mapped[str] = mapped_column(Text, nullable=False)
+
+    __table_args__ = (UniqueConstraint("tenant_id", "sha256", name="uq_report_card_asset"),)

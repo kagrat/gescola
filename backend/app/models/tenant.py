@@ -52,5 +52,15 @@ class Tenant(Base, TimestampMixin):
     bulletin_show_school_life: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     bulletin_show_head_teacher_signature: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     term_periods: Mapped[dict | None] = mapped_column(JSONB, nullable=True)  # {"T1": {"start": "...", "end": "..."}}
+    # Signataires désignés explicitement (facultatif) ; à défaut, le plus ancien
+    # compte actif du rôle concerné (voir bulletin_service._resolve_signers).
+    bulletin_director_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    bulletin_censor_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
 
-    users: Mapped[list["User"]] = relationship(back_populates="tenant", cascade="all, delete-orphan")
+    users: Mapped[list["User"]] = relationship(
+        back_populates="tenant", cascade="all, delete-orphan", foreign_keys="User.tenant_id"
+    )

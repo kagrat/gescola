@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
+import { checkImageFile, IMAGE_ACCEPT } from "../lib/images";
 import { useAuth } from "../auth/AuthContext";
 import { CAN_MANAGE_ESTABLISHMENT_SETTINGS, roleCan } from "../lib/permissions";
 
@@ -18,6 +19,15 @@ interface Settings {
   bulletin_show_school_life: boolean;
   bulletin_show_head_teacher_signature: boolean;
   term_periods: Record<string, { start: string; end: string }> | null;
+  bulletin_director_user_id: string | null;
+  bulletin_censor_user_id: string | null;
+}
+
+interface Account {
+  id: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
 }
 
 const TERM_ROWS: [string, string][] = [["T1", "1er trimestre"], ["T2", "2e trimestre"], ["T3", "3e trimestre"]];
@@ -39,6 +49,7 @@ export default function EstablishmentSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   function reload() {
     api.get<Settings>("/establishment/settings").then((s) => {
@@ -47,14 +58,21 @@ export default function EstablishmentSettingsPage() {
     });
   }
   useEffect(reload, []);
+  // Candidats aux signatures du bulletin : la liste des comptes n'est accessible qu'à qui peut modifier ces réglages.
+  useEffect(() => {
+    if (canEdit) api.get<Account[]>("/users").then(setAccounts).catch(() => setAccounts([]));
+  }, [canEdit]);
 
   async function handleLogoChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 1_000_000) {
-      setError("Image trop volumineuse (1 Mo maximum).");
+    const problem = checkImageFile(file);
+    if (problem) {
+      setError(problem);
+      e.target.value = "";
       return;
     }
+    setError(null);
     const dataUri = await fileToDataUri(file);
     setLogoPreview(dataUri);
   }
@@ -88,6 +106,8 @@ export default function EstablishmentSettingsPage() {
         bulletin_motto: form.get("bulletin_motto") || null,
         bulletin_authority_header: form.get("bulletin_authority_header") || null,
         bulletin_place: form.get("bulletin_place") || null,
+        bulletin_director_user_id: form.get("bulletin_director_user_id") || null,
+        bulletin_censor_user_id: form.get("bulletin_censor_user_id") || null,
         bulletin_show_appreciations: form.get("bulletin_show_appreciations") === "on",
         bulletin_show_school_life: form.get("bulletin_show_school_life") === "on",
         bulletin_show_head_teacher_signature: form.get("bulletin_show_head_teacher_signature") === "on",
@@ -143,7 +163,7 @@ export default function EstablishmentSettingsPage() {
                   Aucun
                 </div>
               )}
-              {canEdit && <input type="file" accept="image/*" onChange={handleLogoChange} className="text-sm text-ink/60" />}
+              {canEdit && <input type="file" accept={IMAGE_ACCEPT} onChange={handleLogoChange} className="text-sm text-ink/60" />}
             </div>
           </div>
 
@@ -165,6 +185,21 @@ export default function EstablishmentSettingsPage() {
                   className="w-full rounded border border-line bg-white px-3.5 py-2.5 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition resize-none"
                 />
                 <p className="text-xs text-ink/40 mt-1">Une ligne par ligne imprimée, en haut à droite du bulletin.</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-ink/80 mb-2">Signataires du bulletin</p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <SignerSelect
+                    name="bulletin_director_user_id" label="Directeur" current={settings.bulletin_director_user_id}
+                    accounts={accounts.filter((a) => a.is_active && (a.role === "school_admin" || a.role === "founder"))}
+                  />
+                  <SignerSelect
+                    name="bulletin_censor_user_id" label="Censeur" current={settings.bulletin_censor_user_id}
+                    accounts={accounts.filter((a) => a.is_active && a.role === "censor")}
+                  />
+                </div>
+                <p className="text-xs text-ink/40 mt-2">« Automatique » retient le compte actif le plus ancien du rôle. Chaque signataire pose sa propre signature et son propre cachet depuis son profil.</p>
               </div>
 
               <div>
@@ -227,5 +262,20 @@ function Toggle({ name, label, defaultChecked }: { name: string; label: string; 
       <input type="checkbox" name={name} defaultChecked={defaultChecked} className="mt-0.5 w-4 h-4 accent-navy" />
       <span>{label}</span>
     </label>
+  );
+}
+
+function SignerSelect({ name, label, current, accounts }: { name: string; label: string; current: string | null; accounts: Account[] }) {
+  return (
+    <div>
+      <label htmlFor={name} className="block text-xs font-medium text-ink/60 mb-1">{label}</label>
+      <select
+        id={name} name={name} defaultValue={current ?? ""}
+        className="w-full rounded border border-line bg-white px-3.5 py-2.5 text-[14.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy transition"
+      >
+        <option value="">Automatique</option>
+        {accounts.map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+      </select>
+    </div>
   );
 }

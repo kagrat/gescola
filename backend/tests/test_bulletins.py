@@ -472,3 +472,188 @@ def test_subject_coefficient_can_be_corrected_and_drives_the_average(client, mak
     other = make_tenant()
     other_admin, pwd_o = make_user(tenant=other, role=UserRole.SCHOOL_ADMIN)
     assert client.patch(url, json={"default_coefficient": 3}, headers=auth_headers(other_admin, pwd_o)).status_code == 404
+
+
+# ======================= 4b : bulletin publié figé, signataires désignés, images =======================
+
+def _pdf_images(response) -> list[bytes]:
+    reader = pypdf.PdfReader(io.BytesIO(response.content))
+    return [img.data for page in reader.pages for img in page.images]
+
+
+def _b64_uri(mime: str, raw: bytes) -> str:
+    return f"data:image/{mime};base64," + base64.b64encode(raw).decode()
+
+
+def _image_uri(fmt: str, size=(30, 20), color=(20, 60, 140)) -> str:
+    buffer = io.BytesIO()
+    mode = "RGB" if fmt == "JPEG" else "RGBA"
+    Image.new(mode, size, color if mode == "RGB" else (*color, 255)).save(buffer, fmt)
+    return _b64_uri({"PNG": "png", "JPEG": "jpeg", "GIF": "gif", "WEBP": "webp"}[fmt], buffer.getvalue())
+
+
+def _set_identity(client, s, *, sig_color, stamp_color, logo_color, name, motto, place="Cotonou"):
+    """Positionne signatures/cachets du Directeur et du Censeur, logo et identité."""
+    for headers, offset in ((s.admin_h, 0), (s.censor_h, 40)):
+        r = client.patch("/api/v1/users/me/signature", json={
+            "signature_base64": _png_uri(tuple(min(255, c + offset) for c in sig_color) + (255,), (40 + offset // 10, 20)),
+            "stamp_base64": _png_uri(tuple(min(255, c + offset) for c in stamp_color) + (255,), (30, 30 + offset // 10)),
+        }, headers=headers)
+        assert r.status_code == 200
+    r = client.patch("/api/v1/establishment/settings", json={
+        "logo_base64": _png_uri(logo_color + (255,), (60, 60)), "trade_name": name, "bulletin_motto": motto, "bulletin_place": place,
+    }, headers=s.admin_h)
+    assert r.status_code == 200
+
+
+def test_published_bulletin_reprints_identically_after_school_changes(client, make_tenant, make_user, auth_headers):
+    """BU-01 : identité, réglages d'affichage ET images sont figés à la publication."""
+    s = _school(client, make_tenant, make_user, auth_headers)
+    _set_identity(client, s, sig_color=(180, 0, 0), stamp_color=(0, 160, 0), logo_color=(0, 100, 200), name="Collège Alpha", motto="Devise Alpha")
+    _generate(client, s)
+    cards = _cards(client, s)
+    client.post(f"/api/v1/report-cards/{cards['NOMA']['id']}/publish", headers=s.admin_h)
+
+    before = client.get(f"/api/v1/report-cards/{cards['NOMA']['id']}/pdf", headers=s.admin_h)
+    text_before, images_before = _pdf_text(before), _pdf_images(before)
+    assert "Devise Alpha" in text_before and "Collège Alpha" in text_before and "VIE SCOLAIRE" in text_before
+    assert len(images_before) >= 5
+
+    # L'établissement change tout : nom, devise, lieu, logo, signatures, cachets, sections affichées.
+    _set_identity(client, s, sig_color=(0, 0, 220), stamp_color=(200, 0, 200), logo_color=(220, 120, 0), name="Collège Omega",
+                  motto="Devise Omega", place="Porto-Novo")
+    client.patch("/api/v1/establishment/settings", json={"bulletin_show_school_life": False}, headers=s.admin_h)
+
+    after = client.get(f"/api/v1/report-cards/{cards['NOMA']['id']}/pdf", headers=s.admin_h)
+    assert _pdf_text(after) == text_before, "le texte d'un bulletin publié ne doit jamais changer"
+    assert _pdf_images(after) == images_before, "les images d'un bulletin publié ne doivent jamais changer"
+
+    # Un brouillon, lui, reflète l'état courant.
+    draft = client.get(f"/api/v1/report-cards/{cards['NOMB']['id']}/pdf", headers=s.admin_h)
+    draft_text = _pdf_text(draft)
+    assert "Devise Omega" in draft_text and "Collège Omega" in draft_text and "VIE SCOLAIRE" not in draft_text
+    assert _pdf_images(draft) != images_before
+
+    # Dépublier puis republier fige le NOUVEL état.
+    client.post(f"/api/v1/report-cards/{cards['NOMA']['id']}/unpublish", headers=s.admin_h)
+    assert client.post(f"/api/v1/report-cards/{cards['NOMA']['id']}/publish", headers=s.admin_h).status_code == 200
+    republished = _pdf_text(client.get(f"/api/v1/report-cards/{cards['NOMA']['id']}/pdf", headers=s.admin_h))
+    assert "Devise Omega" in republished and "Devise Alpha" not in republished and "VIE SCOLAIRE" not in republished
+
+
+def test_frozen_images_are_stored_once_per_distinct_image(client, make_tenant, make_user, auth_headers):
+    from sqlalchemy import func, select
+
+    from app.db.session import SessionLocal, set_tenant_context
+    from app.models.report_card import ReportCard, ReportCardAsset
+
+    s = _school(client, make_tenant, make_user, auth_headers)
+    _set_identity(client, s, sig_color=(10, 10, 10), stamp_color=(90, 90, 90), logo_color=(30, 60, 90), name="Collège", motto="Devise")
+    _generate(client, s)
+    for card in _cards(client, s).values():
+        assert client.post(f"/api/v1/report-cards/{card['id']}/publish", headers=s.admin_h).status_code == 200
+
+    db = SessionLocal()
+    try:
+        set_tenant_context(db, str(s.tenant.id))
+        assets = db.execute(select(func.count()).select_from(ReportCardAsset)).scalar_one()
+        frozen = db.execute(select(ReportCard.frozen)).scalars().all()
+    finally:
+        db.close()
+    assert assets == 5                       # logo + signature/cachet du Directeur + signature/cachet du Censeur, pour 3 bulletins
+    assert all(f is not None and f["images"]["logo"] for f in frozen)
+
+
+def test_unpublish_clears_frozen_data(client, make_tenant, make_user, auth_headers):
+    from sqlalchemy import select
+
+    from app.db.session import SessionLocal, set_tenant_context
+    from app.models.report_card import ReportCard
+
+    s = _school(client, make_tenant, make_user, auth_headers)
+    _generate(client, s)
+    card = _cards(client, s)["NOMA"]
+    client.post(f"/api/v1/report-cards/{card['id']}/publish", headers=s.admin_h)
+    client.post(f"/api/v1/report-cards/{card['id']}/unpublish", headers=s.admin_h)
+    db = SessionLocal()
+    try:
+        set_tenant_context(db, str(s.tenant.id))
+        assert db.execute(select(ReportCard.frozen).where(ReportCard.id == card["id"])).scalar_one() is None
+    finally:
+        db.close()
+
+
+def test_designated_signers_are_used_validated_and_fall_back(client, make_tenant, make_user, auth_headers):
+    """BU-02 : signataires explicitement désignés."""
+    from sqlalchemy import update
+
+    from app.db.session import SessionLocal, set_tenant_context
+    from app.models.user import User
+
+    s = _school(client, make_tenant, make_user, auth_headers)
+    director2, _ = make_user(tenant=s.tenant, role=UserRole.SCHOOL_ADMIN, full_name="M. Second Directeur")
+    censor2, _ = make_user(tenant=s.tenant, role=UserRole.CENSOR, full_name="Mme Second Censeur")
+    url = "/api/v1/establishment/settings"
+
+    ok = client.patch(url, json={"bulletin_director_user_id": str(director2.id), "bulletin_censor_user_id": str(censor2.id)}, headers=s.admin_h)
+    assert ok.status_code == 200
+    assert ok.json()["bulletin_director_user_id"] == str(director2.id) and ok.json()["bulletin_censor_user_id"] == str(censor2.id)
+
+    def signers():
+        _generate(client, s)
+        card = _cards(client, s)["NOMA"]
+        return client.get(f"/api/v1/report-cards/{card['id']}", headers=s.admin_h).json()["snapshot"]["signers"]
+
+    designated = signers()
+    assert designated["director"]["name"] == "M. Second Directeur" and designated["censor"]["name"] == "Mme Second Censeur"
+
+    # Validations : mauvais rôle → 400, compte inconnu ou d'un autre établissement → 404.
+    assert client.patch(url, json={"bulletin_director_user_id": str(s.teacher.id)}, headers=s.admin_h).status_code == 400
+    assert client.patch(url, json={"bulletin_censor_user_id": str(s.admin.id)}, headers=s.admin_h).status_code == 400
+    assert client.patch(url, json={"bulletin_director_user_id": "00000000-0000-0000-0000-000000000000"}, headers=s.admin_h).status_code == 404
+    other = make_tenant()
+    foreign, _ = make_user(tenant=other, role=UserRole.SCHOOL_ADMIN)
+    assert client.patch(url, json={"bulletin_director_user_id": str(foreign.id)}, headers=s.admin_h).status_code == 404
+    assert client.patch(url, json={"bulletin_director_user_id": str(s.teacher.id)}, headers=s.teacher_h).status_code == 403
+
+    # Un compte désactivé ne peut plus être désigné, et un signataire désigné puis désactivé est remplacé.
+    db = SessionLocal()
+    try:
+        set_tenant_context(db, str(s.tenant.id))
+        db.execute(update(User).where(User.id == director2.id).values(is_active=False))
+        db.commit()
+    finally:
+        db.close()
+    assert signers()["director"]["name"] == "M. Directeur"                       # repli : le plus ancien compte Direction actif
+    assert client.patch(url, json={"bulletin_director_user_id": str(director2.id)}, headers=s.admin_h).status_code == 400
+
+    # Retirer la désignation (null) : retour au choix automatique.
+    cleared = client.patch(url, json={"bulletin_censor_user_id": None}, headers=s.admin_h).json()
+    assert cleared["bulletin_censor_user_id"] is None
+    assert signers()["censor"]["name"] == "Mme Censeur"
+
+
+def test_unprintable_images_are_rejected_at_upload(client, make_tenant, make_user, auth_headers):
+    """BU-03 : le SVG et les fichiers corrompus sont refusés à l'envoi, pas ignorés à l'impression."""
+    s = _school(client, make_tenant, make_user, auth_headers)
+    svg = _b64_uri("svg+xml", b"<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/>")
+    not_an_image = _b64_uri("png", b"ceci n'est pas une image")
+    targets = [
+        ("PATCH", "/api/v1/establishment/settings", "logo_base64", s.admin_h),
+        ("PATCH", "/api/v1/users/me/signature", "signature_base64", s.admin_h),
+        ("PATCH", "/api/v1/users/me/signature", "stamp_base64", s.admin_h),
+    ]
+    for _, url, field, headers in targets:
+        for bad in (svg, not_an_image, "data:image/png;base64,AAAA", "data:image/png;base64,@@@"):
+            resp = client.patch(url, json={field: bad}, headers=headers)
+            assert resp.status_code == 422, f"{field} : « {bad[:40]} » aurait dû être refusé"
+    assert "SVG" in client.patch("/api/v1/establishment/settings", json={"logo_base64": svg}, headers=s.admin_h).text
+
+    # Un fichier de type autorisé est accepté quel que soit son format réel : PNG, JPEG, GIF, WebP.
+    for fmt in ("PNG", "JPEG", "GIF", "WEBP"):
+        assert client.patch("/api/v1/users/me/signature", json={"signature_base64": _image_uri(fmt)}, headers=s.admin_h).status_code == 200, fmt
+
+    # Image aux dimensions démesurées (petit fichier compressé, 25 millions de pixels) : refusée.
+    huge = io.BytesIO()
+    Image.new("L", (5000, 5000), 0).save(huge, "PNG")
+    assert client.patch("/api/v1/users/me/signature", json={"stamp_base64": _b64_uri("png", huge.getvalue())}, headers=s.admin_h).status_code == 422
