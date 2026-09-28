@@ -50,6 +50,9 @@ async function request<T>(path: string, options: RequestOptions = {}, retried = 
       return request<T>(path, options, true);
     }
     setTokens(null, null);
+    // La session a pris fin côté serveur (compte désactivé, mot de passe changé ailleurs…) :
+    // on prévient l'application pour qu'elle ramène à la connexion au lieu de laisser des écrans en erreur.
+    window.dispatchEvent(new Event("gescola:session-ended"));
   }
 
   if (!resp.ok) {

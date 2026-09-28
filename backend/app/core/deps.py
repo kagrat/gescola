@@ -1,8 +1,14 @@
 """
 Dépendances d'authentification et d'autorisation.
-
-get_current_user  : valide le JWT access token, charge l'utilisateur, vérifie
-                     qu'il est actif et non verrouillé.
+get_current_user  : valide le JWT access token PUIS relit le compte en base :
+                     compte actif, version de session à jour (un changement de mot
+                     de passe, une désactivation ou une réinitialisation invalide
+                     immédiatement les jetons déjà émis), rôle et établissement lus en
+                     base — pas dans le jeton — pour qu'une rétrogradation prenne effet
+                     tout de suite. Refuse (403) tant que le mot de passe provisoire n'a
+                     pas été remplacé.
+get_current_user_allow_pending : idem, mais laisse passer un compte qui doit encore
+                     changer son mot de passe (uniquement /auth/me et /auth/change-password).
 require_roles(...) : factory de dépendance RBAC — restreint un endpoint à une
                      liste de rôles.
 get_tenant_db      : fournit une session DB avec le contexte tenant déjà
@@ -14,6 +20,7 @@ from dataclasses import dataclass
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import JWTError, TokenType, decode_token
@@ -30,6 +37,7 @@ class CurrentUser:
     network_id: uuid.UUID | None
     role: UserRole
     email: str
+    must_change_password: bool = False
 
 
 def _credentials_exception() -> HTTPException:
@@ -40,28 +48,50 @@ def _credentials_exception() -> HTTPException:
     )
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> CurrentUser:
+def _load_current_user(token: str) -> CurrentUser:
     try:
         payload = decode_token(token)
     except JWTError:
         raise _credentials_exception()
-
-    if payload.get("type") != TokenType.ACCESS.value:
+    if payload.get("type") != TokenType.ACCESS.value or not payload.get("sub"):
+        raise _credentials_exception()
+    try:
+        user_id = uuid.UUID(payload["sub"])
+    except ValueError:
         raise _credentials_exception()
 
-    user_id = payload.get("sub")
-    if not user_id:
-        raise _credentials_exception()
+    db = SessionLocal()
+    try:
+        row = db.execute(
+            select(
+                User.is_active, User.must_change_password, User.session_version, User.role, User.tenant_id,
+                User.network_id, User.email,
+            ).where(User.id == user_id)
+        ).one_or_none()
+    finally:
+        db.close()
 
-    tenant_id = payload.get("tenant_id")
-    network_id = payload.get("network_id")
+    # Jeton sans revendication « sv » = émis avant l'introduction des versions de session (valeur 0).
+    if row is None or not row.is_active or row.session_version != int(payload.get("sv", 0)):
+        raise _credentials_exception()
     return CurrentUser(
-        id=uuid.UUID(user_id),
-        tenant_id=uuid.UUID(tenant_id) if tenant_id else None,
-        network_id=uuid.UUID(network_id) if network_id else None,
-        role=UserRole(payload["role"]),
-        email=payload.get("email", ""),
+        id=user_id, tenant_id=row.tenant_id, network_id=row.network_id, role=row.role, email=row.email,
+        must_change_password=row.must_change_password,
     )
+
+
+def get_current_user_allow_pending(token: str = Depends(oauth2_scheme)) -> CurrentUser:
+    return _load_current_user(token)
+
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> CurrentUser:
+    user = _load_current_user(token)
+    if user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Vous devez d'abord choisir un nouveau mot de passe (mot de passe provisoire).",
+        )
+    return user
 
 
 def require_roles(*allowed_roles: UserRole):

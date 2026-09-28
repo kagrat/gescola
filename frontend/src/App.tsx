@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
@@ -26,11 +26,16 @@ import TeachingPage from "./pages/TeachingPage";
 import MyClassesPage from "./pages/MyClassesPage";
 import TimetablePage from "./pages/TimetablePage";
 import MyTimetablePage from "./pages/MyTimetablePage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-ink/40">Chargement…</div>;
+  const location = useLocation();
   if (!user) return <Navigate to="/connexion" replace />;
+  // Mot de passe provisoire : rien d'autre n'est accessible tant qu'il n'a pas été remplacé
+  // (le serveur applique la même règle — cette redirection n'est qu'un confort).
+  if (user.must_change_password && location.pathname !== "/mot-de-passe") return <Navigate to="/mot-de-passe" replace />;
   return <>{children}</>;
 }
 
@@ -41,6 +46,7 @@ export default function App() {
         <Routes>
           <Route path="/connexion" element={<LoginPage />} />
           <Route path="/inscription" element={<SignupPage />} />
+          <Route path="/mot-de-passe" element={<RequireAuth><ChangePasswordPage /></RequireAuth>} />
           <Route
             path="/"
             element={

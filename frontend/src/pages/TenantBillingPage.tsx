@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import StatusPill from "../components/StatusPill";
 import RequireRole from "../components/RequireRole";
+import TemporaryPasswordDialog from "../components/TemporaryPasswordDialog";
 import { IS_SUPER_ADMIN } from "../lib/permissions";
 
 interface Tenant {
@@ -250,6 +251,8 @@ function TenantBillingPageContent() {
         )}
       </div>
 
+      {tenantId && <TenantAccounts tenantId={tenantId} />}
+
       {payingInvoice && (
         <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded max-w-sm w-full p-6">
@@ -294,5 +297,71 @@ function Th({ children }: { children?: React.ReactNode }) {
     <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-5 pb-2.5 pt-4 border-b border-line">
       {children}
     </th>
+  );
+}
+
+interface TenantAccount {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  must_change_password: boolean;
+}
+
+const ACCOUNT_ROLES: Record<string, string> = {
+  founder: "Fondateur", school_admin: "Direction", censor: "Censeur", supervisor: "Surveillant",
+  accountant: "Comptable", staff: "Secrétariat", teacher: "Enseignant", parent: "Parent",
+};
+
+/** Dépannage par l'éditeur : seule voie pour rouvrir l'accès d'un Fondateur bloqué (personne d'autre dans
+ *  l'établissement ne peut gérer ce compte, et l'envoi d'e-mails de réinitialisation n'existe pas encore). */
+function TenantAccounts({ tenantId }: { tenantId: string }) {
+  const [accounts, setAccounts] = useState<TenantAccount[]>([]);
+  const [temporary, setTemporary] = useState<{ name: string; password: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get<TenantAccount[]>(`/platform/tenants/${tenantId}/users`).then(setAccounts).catch(() => setAccounts([]));
+  }, [tenantId]);
+
+  async function reset(a: TenantAccount) {
+    if (!window.confirm(`Générer un nouveau mot de passe provisoire pour ${a.full_name} (${ACCOUNT_ROLES[a.role] ?? a.role}) ? Ses sessions en cours seront fermées.`)) return;
+    setError(null);
+    try {
+      const r = await api.post<{ temporary_password: string }>(`/platform/tenants/${tenantId}/users/${a.id}/reset-password`);
+      setTemporary({ name: a.full_name, password: r.temporary_password });
+      api.get<TenantAccount[]>(`/platform/tenants/${tenantId}/users`).then(setAccounts).catch(() => undefined);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible de réinitialiser le mot de passe.");
+    }
+  }
+
+  return (
+    <section className="mt-10 mb-16">
+      <h2 className="font-display text-lg text-ink">Comptes de l'établissement</h2>
+      <p className="text-sm text-ink/55 mt-1">Dépannage : réinitialiser le mot de passe d'un compte (notamment un Fondateur bloqué).</p>
+      {error && <p className="mt-3 text-sm text-brick">{error}</p>}
+      <div className="mt-4 border border-line rounded bg-white overflow-hidden">
+        <table className="w-full text-[14.5px]">
+          <thead><tr><Th>Nom</Th><Th>E-mail</Th><Th>Rôle</Th><Th>Statut</Th><Th /></tr></thead>
+          <tbody className="divide-y divide-line">
+            {accounts.length === 0 && <tr><td colSpan={5} className="px-5 py-6 text-ink/40">Aucun compte.</td></tr>}
+            {accounts.map((a) => (
+              <tr key={a.id}>
+                <td className="px-5 py-2.5 font-medium text-ink">{a.full_name}</td>
+                <td className="px-5 py-2.5 text-ink/60">{a.email}</td>
+                <td className="px-5 py-2.5 text-ink/60">{ACCOUNT_ROLES[a.role] ?? a.role}</td>
+                <td className="px-5 py-2.5 text-ink/60">{a.is_active ? "Actif" : "Désactivé"}{a.must_change_password ? " · provisoire" : ""}</td>
+                <td className="px-5 py-2.5 text-right">
+                  <button onClick={() => reset(a)} className="text-navy text-sm underline underline-offset-2 hover:text-navy-light">Réinitialiser le mot de passe</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {temporary && <TemporaryPasswordDialog name={temporary.name} password={temporary.password} onClose={() => setTemporary(null)} />}
+    </section>
   );
 }

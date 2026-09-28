@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.roles import TENANT_INTERNAL_ROLES
 from app.core.security import hash_password
+from app.services.user_lookup import email_in_use
 from app.models.user import User, UserRole
 from app.schemas.user import UserCreate
 
@@ -32,10 +33,8 @@ def create_user(db: Session, *, tenant_id: uuid.UUID | None, actor_role: UserRol
             detail="Un établissement est obligatoire pour ce rôle.",
         )
 
-    existing = db.execute(
-        select(User).where(User.email == data.email, User.tenant_id == tenant_id)
-    ).scalar_one_or_none()
-    if existing:
+    # Unicité GLOBALE (pas seulement dans l'établissement) : la connexion identifie un compte par son seul e-mail.
+    if email_in_use(db, data.email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cet e-mail est déjà utilisé.")
 
     user = User(
@@ -44,6 +43,7 @@ def create_user(db: Session, *, tenant_id: uuid.UUID | None, actor_role: UserRol
         hashed_password=hash_password(data.password),
         full_name=data.full_name,
         role=data.role,
+        must_change_password=True,  # mot de passe choisi par un administrateur : provisoire par nature
     )
     db.add(user)
     db.commit()

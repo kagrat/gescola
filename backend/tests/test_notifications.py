@@ -1,7 +1,7 @@
 from app.models.user import UserRole
 
 
-def test_invoice_reminder_notifies_linked_guardian(client, make_tenant, make_user, auth_headers):
+def test_invoice_reminder_notifies_linked_guardian(client, make_tenant, make_user, auth_headers, first_login):
     tenant = make_tenant()
     admin, pwd = make_user(tenant=tenant, role=UserRole.SCHOOL_ADMIN)
     headers = auth_headers(admin, pwd)
@@ -28,8 +28,7 @@ def test_invoice_reminder_notifies_linked_guardian(client, make_tenant, make_use
     assert remind_resp.status_code == 200
     assert remind_resp.json()["notified"] == 1
 
-    login_resp = client.post("/api/v1/auth/login", json={"email": "parent-reminder@example.com", "password": "Str0ng#Passw0rd!"})
-    parent_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    parent_headers = first_login("parent-reminder@example.com", "Str0ng#Passw0rd!")
 
     notif_resp = client.get("/api/v1/me/notifications", headers=parent_headers)
     assert notif_resp.status_code == 200
@@ -55,7 +54,7 @@ def test_invoice_reminder_with_no_linked_guardian_returns_zero(client, make_tena
     assert resp.json()["notified"] == 0
 
 
-def test_mark_notification_as_read(client, make_tenant, make_user, auth_headers):
+def test_mark_notification_as_read(client, make_tenant, make_user, auth_headers, first_login):
     tenant = make_tenant()
     admin, pwd = make_user(tenant=tenant, role=UserRole.SCHOOL_ADMIN)
     headers = auth_headers(admin, pwd)
@@ -77,8 +76,7 @@ def test_mark_notification_as_read(client, make_tenant, make_user, auth_headers)
     )
     client.post(f"/api/v1/invoices/{invoice['id']}/remind", headers=headers)
 
-    login_resp = client.post("/api/v1/auth/login", json={"email": "parent-read@example.com", "password": "Str0ng#Passw0rd!"})
-    parent_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    parent_headers = first_login("parent-read@example.com", "Str0ng#Passw0rd!")
     notif_id = client.get("/api/v1/me/notifications", headers=parent_headers).json()[0]["id"]
 
     read_resp = client.post(f"/api/v1/me/notifications/{notif_id}/read", headers=parent_headers)

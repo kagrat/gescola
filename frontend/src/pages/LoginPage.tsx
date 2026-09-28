@@ -5,6 +5,13 @@ import { useAuth } from "../auth/AuthContext";
 export default function LoginPage() {
   const { login, verifyMfa, error } = useAuth();
   const navigate = useNavigate();
+  // Session coupée côté serveur (compte désactivé, mot de passe changé ailleurs…) : on l'explique au lieu de
+  // laisser croire à un bug. Lu une seule fois puis effacé.
+  const [sessionEnded] = useState(() => {
+    const flag = sessionStorage.getItem("gescola_session_ended") === "1";
+    sessionStorage.removeItem("gescola_session_ended");
+    return flag;
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -88,6 +95,11 @@ export default function LoginPage() {
               <h1 className="font-display text-2xl font-medium text-ink">Se connecter</h1>
               <p className="mt-1.5 text-sm text-ink/60">Accédez à l'espace de votre établissement.</p>
 
+              {sessionEnded && (
+                <p className="mt-6 text-sm text-ochre-dark bg-ochre/10 border border-ochre/20 rounded px-3 py-2">
+                  Votre session a pris fin (mot de passe modifié, compte désactivé ou session expirée). Reconnectez-vous.
+                </p>
+              )}
               <form onSubmit={handleSubmit} className="mt-8 space-y-4">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-ink/80 mb-1.5">

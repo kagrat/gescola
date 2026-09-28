@@ -165,6 +165,30 @@ def auth_headers(client, make_user):
     return _login
 
 
+PERMANENT_PASSWORD = "Permanent#Passw0rd42"
+
+
+@pytest.fixture
+def first_login(client):
+    """Parcours réel d'un compte CRÉÉ PAR UN ADMINISTRATEUR : son mot de passe est
+    provisoire, il doit le remplacer à la première connexion avant tout autre
+    usage. Renvoie les headers de la session obtenue après ce changement."""
+
+    def _first_login(email: str, provisional_password: str) -> dict:
+        login = client.post("/api/v1/auth/login", json={"email": email, "password": provisional_password})
+        assert login.status_code == 200, login.text
+        provisional = {"Authorization": f"Bearer {login.json()['access_token']}"}
+        changed = client.post(
+            "/api/v1/auth/change-password",
+            json={"current_password": provisional_password, "new_password": PERMANENT_PASSWORD},
+            headers=provisional,
+        )
+        assert changed.status_code == 200, changed.text
+        return {"Authorization": f"Bearer {changed.json()['access_token']}"}
+
+    return _first_login
+
+
 @pytest.fixture
 def tenant_db_session():
     """Session DB avec contexte RLS positionné manuellement — pour les tests

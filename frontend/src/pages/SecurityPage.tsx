@@ -1,3 +1,4 @@
+import PasswordForm from "../components/PasswordForm";
 import { useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
@@ -55,6 +56,14 @@ export default function SecurityPage() {
     <div className="px-10 py-10 max-w-2xl">
       <h1 className="font-display text-3xl font-medium text-ink">Sécurité du compte</h1>
       <p className="text-sm text-ink/55 mt-1">{user?.email}</p>
+
+      <section className="mt-8 border border-line rounded bg-white p-6">
+        <h2 className="font-display text-lg text-ink">Mot de passe</h2>
+        <p className="text-sm text-ink/55 mt-1 mb-5">
+          Changer votre mot de passe ferme toutes vos autres sessions ouvertes (autre appareil, autre navigateur).
+        </p>
+        <div className="max-w-md"><PasswordForm /></div>
+      </section>
 
       <section className="mt-8 border border-line rounded bg-white p-6">
         <div className="flex items-center justify-between">

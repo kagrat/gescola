@@ -16,7 +16,9 @@ interface CurrentUser {
     | "teacher"
     | "parent";
   email: string;
+  full_name: string;
   mfa_enabled: boolean;
+  must_change_password: boolean;
 }
 
 interface LoginResult {
@@ -33,6 +35,7 @@ interface AuthState {
   signup: (data: SignupData) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 interface SignupData {
@@ -60,6 +63,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const me = await api.get<CurrentUser>("/auth/me");
     setUser(me);
   }
+
+  useEffect(() => {
+    function onSessionEnded() {
+      sessionStorage.setItem("gescola_session_ended", "1");
+      setUser(null);
+    }
+    window.addEventListener("gescola:session-ended", onSessionEnded);
+    return () => window.removeEventListener("gescola:session-ended", onSessionEnded);
+  }, []);
 
   useEffect(() => {
     if (!getAccessToken()) {
@@ -124,13 +136,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function changePassword(currentPassword: string, newPassword: string) {
+    // Les anciens jetons sont invalidés par le serveur ; la réponse en fournit de nouveaux pour cette session.
+    const tokens = await api.post<{ access_token: string; refresh_token: string }>("/auth/change-password", {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+    setTokens(tokens.access_token, tokens.refresh_token);
+    await loadMe();
+  }
+
   function logout() {
     setTokens(null, null);
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, verifyMfa, signup, logout, refreshUser: loadMe }}>
+    <AuthContext.Provider value={{ user, loading, error, login, verifyMfa, signup, logout, refreshUser: loadMe, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

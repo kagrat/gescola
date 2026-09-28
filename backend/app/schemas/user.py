@@ -54,3 +54,5 @@ class UserOut(BaseModel):
     full_name: str
     role: UserRole
     is_active: bool
+    must_change_password: bool = False
+    mfa_enabled: bool = False

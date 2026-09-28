@@ -1,7 +1,7 @@
 from app.models.user import UserRole
 
 
-def test_parent_sees_only_linked_child(client, make_tenant, make_user, auth_headers):
+def test_parent_sees_only_linked_child(client, make_tenant, make_user, auth_headers, first_login):
     tenant = make_tenant()
     admin, pwd_admin = make_user(tenant=tenant, role=UserRole.SCHOOL_ADMIN)
     headers_admin = auth_headers(admin, pwd_admin)
@@ -22,11 +22,8 @@ def test_parent_sees_only_linked_child(client, make_tenant, make_user, auth_head
     )
     assert link_resp.status_code == 201
 
-    # Connexion du parent avec le mot de passe défini à la création
-    login_resp = client.post("/api/v1/auth/login", json={"email": "parent@example.com", "password": "Str0ng#Passw0rd!"})
-    assert login_resp.status_code == 200
-    parent_token = login_resp.json()["access_token"]
-    parent_headers = {"Authorization": f"Bearer {parent_token}"}
+    # Première connexion du parent : mot de passe provisoire à remplacer avant tout usage
+    parent_headers = first_login("parent@example.com", "Str0ng#Passw0rd!")
 
     children_resp = client.get("/api/v1/me/children", headers=parent_headers)
     assert children_resp.status_code == 200
@@ -43,7 +40,7 @@ def test_parent_sees_only_linked_child(client, make_tenant, make_user, auth_head
     assert grades_b.status_code == 404
 
 
-def test_parent_cannot_access_general_student_endpoints(client, make_tenant, make_user, auth_headers):
+def test_parent_cannot_access_general_student_endpoints(client, make_tenant, make_user, auth_headers, first_login):
     """Le rôle PARENT n'a jamais accès aux endpoints du personnel, même pour
     son propre enfant — seuls les endpoints /me/children et /children/{id}/*
     lui sont ouverts."""
@@ -56,14 +53,13 @@ def test_parent_cannot_access_general_student_endpoints(client, make_tenant, mak
         json={"email": "parent2@example.com", "password": "Str0ng#Passw0rd!", "full_name": "Parent", "role": "parent"},
         headers=headers_admin,
     ).json()
-    login_resp = client.post("/api/v1/auth/login", json={"email": "parent2@example.com", "password": "Str0ng#Passw0rd!"})
-    parent_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    parent_headers = first_login("parent2@example.com", "Str0ng#Passw0rd!")
 
     resp = client.get("/api/v1/students", headers=parent_headers)
     assert resp.status_code == 403
 
 
-def test_parent_can_view_average_attendance_and_invoices_of_linked_child(client, make_tenant, make_user, auth_headers):
+def test_parent_can_view_average_attendance_and_invoices_of_linked_child(client, make_tenant, make_user, auth_headers, first_login):
     tenant = make_tenant()
     admin, pwd = make_user(tenant=tenant, role=UserRole.SCHOOL_ADMIN)
     headers_admin = auth_headers(admin, pwd)
@@ -92,8 +88,7 @@ def test_parent_can_view_average_attendance_and_invoices_of_linked_child(client,
         json={"parent_user_id": parent["id"], "student_id": child["id"], "relationship_label": "Mère"},
         headers=headers_admin,
     )
-    login_resp = client.post("/api/v1/auth/login", json={"email": "parent-full@example.com", "password": "Str0ng#Passw0rd!"})
-    parent_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    parent_headers = first_login("parent-full@example.com", "Str0ng#Passw0rd!")
 
     avg_resp = client.get(f"/api/v1/children/{child['id']}/average", params={"term": "T1"}, headers=parent_headers)
     assert avg_resp.status_code == 200
@@ -113,8 +108,7 @@ def test_parent_can_view_average_attendance_and_invoices_of_linked_child(client,
         json={"email": "other-parent@example.com", "password": "Str0ng#Passw0rd!", "full_name": "Autre", "role": "parent"},
         headers=headers_admin,
     ).json()
-    other_login = client.post("/api/v1/auth/login", json={"email": "other-parent@example.com", "password": "Str0ng#Passw0rd!"})
-    other_headers = {"Authorization": f"Bearer {other_login.json()['access_token']}"}
+    other_headers = first_login("other-parent@example.com", "Str0ng#Passw0rd!")
     assert client.get(f"/api/v1/children/{child['id']}/average", params={"term": "T1"}, headers=other_headers).status_code == 404
     assert client.get(f"/api/v1/children/{child['id']}/attendance", headers=other_headers).status_code == 404
     assert client.get(f"/api/v1/children/{child['id']}/invoices", headers=other_headers).status_code == 404
@@ -198,7 +192,7 @@ def test_duplicate_guardian_link_rejected(client, make_tenant, make_user, auth_h
     assert second.status_code == 409
 
 
-def test_list_and_delete_guardian_link(client, make_tenant, make_user, auth_headers):
+def test_list_and_delete_guardian_link(client, make_tenant, make_user, auth_headers, first_login):
     tenant = make_tenant()
     admin, pwd = make_user(tenant=tenant, role=UserRole.SCHOOL_ADMIN)
     headers = auth_headers(admin, pwd)
@@ -226,8 +220,7 @@ def test_list_and_delete_guardian_link(client, make_tenant, make_user, auth_head
     assert listed_after == []
 
     # Le parent perd effectivement l'accès une fois le rattachement retiré
-    login_resp = client.post("/api/v1/auth/login", json={"email": "list-parent@example.com", "password": "Str0ng#Passw0rd!"})
-    parent_headers = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+    parent_headers = first_login("list-parent@example.com", "Str0ng#Passw0rd!")
     children = client.get("/api/v1/me/children", headers=parent_headers)
     assert children.json() == []
 

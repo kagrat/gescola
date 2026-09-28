@@ -8,7 +8,7 @@ remplace pas) le rate limiting réseau posé sur l'endpoint /auth/login.
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.security import (
@@ -33,7 +33,7 @@ def _generic_auth_error() -> HTTPException:
 
 
 def authenticate(db: Session, *, email: str, password: str) -> User:
-    user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    user = db.execute(select(User).where(func.lower(User.email) == email.strip().lower())).scalar_one_or_none()
 
     if user is None:
         raise _generic_auth_error()
@@ -118,7 +118,7 @@ def issue_token_pair(db: Session, user: User) -> tuple[str, str]:
     network_id = str(user.network_id) if user.network_id else None
     access = create_token(
         subject=str(user.id), tenant_id=tenant_id, role=user.role.value,
-        token_type=TokenType.ACCESS, extra_claims={"email": user.email, "network_id": network_id},
+        token_type=TokenType.ACCESS, extra_claims={"email": user.email, "network_id": network_id, "sv": user.session_version},
     )
     refresh_raw = create_token(
         subject=str(user.id), tenant_id=tenant_id, role=user.role.value, token_type=TokenType.REFRESH,

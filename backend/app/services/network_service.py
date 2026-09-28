@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.models.school_network import SchoolNetwork
 from app.models.tenant import Tenant
+from app.services.user_lookup import email_in_use
 from app.models.user import User, UserRole
 from app.schemas.network import NetworkAdminCreate, NetworkCreate
 
@@ -44,15 +45,13 @@ def create_network_admin(db: Session, *, network_id: uuid.UUID, data: NetworkAdm
     if network is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Réseau introuvable.")
 
-    existing = db.execute(
-        select(User).where(User.email == data.email, User.network_id == network_id)
-    ).scalar_one_or_none()
-    if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cet e-mail est déjà utilisé pour ce réseau.")
+    if email_in_use(db, data.email):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cet e-mail est déjà utilisé.")
 
     user = User(
         tenant_id=None, network_id=network_id, email=data.email,
         hashed_password=hash_password(data.password), full_name=data.full_name, role=UserRole.NETWORK_ADMIN,
+        must_change_password=True,
     )
     db.add(user)
     db.commit()

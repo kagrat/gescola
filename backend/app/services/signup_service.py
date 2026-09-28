@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.models.billing import Subscription
 from app.models.tenant import Tenant
+from app.services.user_lookup import email_in_use
 from app.models.user import User, UserRole
 from app.schemas.signup import SignupRequest
 from app.services.audit_service import log_action
@@ -42,8 +43,7 @@ def signup(db: Session, data: SignupRequest) -> tuple[str, str, Tenant, Subscrip
     champs du schéma (admin_full_name, admin_email...) restent inchangés pour
     ne pas casser le contrat d'API déjà utilisé par le frontend — seul le
     rôle effectivement créé change."""
-    existing_admin = db.execute(select(User).where(User.email == data.admin_email)).scalar_one_or_none()
-    if existing_admin:
+    if email_in_use(db, data.admin_email):
         # Message générique : ne pas confirmer qu'un compte existe déjà avec
         # cet e-mail dans un AUTRE établissement (énumération de comptes).
         raise HTTPException(

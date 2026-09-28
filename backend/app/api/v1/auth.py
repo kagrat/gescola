@@ -2,15 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.deps import CurrentUser, get_current_user
+from app.core.deps import CurrentUser, get_current_user, get_current_user_allow_pending
 from app.core.limiter import limiter
 from app.db.session import get_db
 from app.models.user import User
+from app.schemas.account import ChangePasswordRequest
 from app.schemas.auth import (
     LoginRequest, LoginResponse, MfaConfirmRequest, MfaDisableRequest, MfaLoginVerifyRequest,
     MfaSetupResponse, RefreshRequest, TokenPair,
 )
 from app.schemas.signup import SignupRequest, SignupResponse
+from app.services.account_service import change_own_password
 from app.services.auth_service import authenticate, complete_mfa_login, issue_mfa_pending_token, issue_token_pair, rotate_refresh_token
 from app.services.mfa_service import confirm_mfa_setup, disable_mfa, start_mfa_setup
 from app.services.signup_service import signup as signup_service
@@ -66,8 +68,21 @@ def signup_endpoint(request: Request, payload: SignupRequest, db: Session = Depe
     )
 
 
+@router.post("/change-password", response_model=TokenPair)
+@limiter.limit("10/hour")
+def change_password(
+    request: Request, payload: ChangePasswordRequest, db: Session = Depends(get_db),
+    # Accessible même quand le mot de passe provisoire n'a pas encore été changé (c'est précisément son but).
+    current_user: CurrentUser = Depends(get_current_user_allow_pending),
+) -> TokenPair:
+    access, refresh_token = change_own_password(
+        db, user_id=current_user.id, current_password=payload.current_password, new_password=payload.new_password,
+    )
+    return TokenPair(access_token=access, refresh_token=refresh_token)
+
+
 @router.get("/me")
-def me(db: Session = Depends(get_db), current_user: CurrentUser = Depends(get_current_user)) -> dict:
+def me(db: Session = Depends(get_db), current_user: CurrentUser = Depends(get_current_user_allow_pending)) -> dict:
     user = _get_current_db_user(db, current_user)
     return {
         "id": str(current_user.id),
@@ -75,6 +90,8 @@ def me(db: Session = Depends(get_db), current_user: CurrentUser = Depends(get_cu
         "role": current_user.role.value,
         "email": current_user.email,
         "mfa_enabled": user.mfa_enabled,
+        "must_change_password": user.must_change_password,
+        "full_name": user.full_name,
     }
 
 

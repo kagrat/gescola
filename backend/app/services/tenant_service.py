@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
 from app.models.tenant import Tenant
+from app.services.user_lookup import email_in_use
 from app.models.user import User, UserRole
 from app.schemas.user import TenantCreate
 from app.services.audit_service import log_action
@@ -21,8 +22,7 @@ def create_tenant(db: Session, data: TenantCreate) -> Tenant:
     if existing_tenant:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ce code établissement existe déjà.")
 
-    existing_admin = db.execute(select(User).where(User.email == data.admin_email)).scalar_one_or_none()
-    if existing_admin:
+    if email_in_use(db, data.admin_email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cette adresse e-mail est déjà utilisée.")
 
     tenant = Tenant(name=data.name, code=data.code)
@@ -32,6 +32,7 @@ def create_tenant(db: Session, data: TenantCreate) -> Tenant:
     founder = User(
         tenant_id=tenant.id, email=data.admin_email, hashed_password=hash_password(data.admin_password),
         full_name=data.admin_full_name, role=UserRole.FOUNDER,
+        must_change_password=True,  # mot de passe saisi par le Super Admin : provisoire
     )
     db.add(founder)
     db.flush()

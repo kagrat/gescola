@@ -47,6 +47,11 @@ class User(Base, TimestampMixin):
     )
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Mot de passe provisoire (compte créé ou réinitialisé par un administrateur) :
+    # l'utilisateur doit en choisir un nouveau avant tout autre usage.
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Incrémenté pour invalider immédiatement tous les jetons d'accès déjà émis.
+    session_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
