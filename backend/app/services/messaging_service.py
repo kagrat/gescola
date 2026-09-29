@@ -36,6 +36,7 @@ from app.schemas.messaging import (
 )
 from app.services.audit_service import log_action
 from app.services.guardian_service import assert_parent_linked_to_student
+from app.services.teaching_service import teacher_teaches_class
 
 MAX_PARENT_RECIPIENTS = 3
 _ROLE_LABELS = {
@@ -77,19 +78,7 @@ def active_guardians(db: Session, tenant_id: uuid.UUID, student_id: uuid.UUID) -
 def _teacher_teaches_student(db: Session, tenant_id: uuid.UUID, teacher_id: uuid.UUID, student: Student) -> bool:
     if student.class_id is None:
         return False
-    is_head = db.execute(
-        select(SchoolClass.id).where(
-            SchoolClass.id == student.class_id, SchoolClass.tenant_id == tenant_id, SchoolClass.head_teacher_id == teacher_id
-        )
-    ).first() is not None
-    if is_head:
-        return True
-    return db.execute(
-        select(TeacherAssignment.id).where(
-            TeacherAssignment.tenant_id == tenant_id, TeacherAssignment.teacher_id == teacher_id,
-            TeacherAssignment.class_id == student.class_id,
-        )
-    ).first() is not None
+    return teacher_teaches_class(db, tenant_id=tenant_id, teacher_id=teacher_id, class_id=student.class_id)
 
 
 def can_message_about(db: Session, tenant_id: uuid.UUID, actor_id: uuid.UUID, actor_role: UserRole, student: Student) -> bool:

@@ -410,11 +410,36 @@ function AttendanceSection({ studentId }: { studentId: string }) {
   const [records, setRecords] = useState<Attendance[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editStatus, setEditStatus] = useState("present");
+  const [editJustified, setEditJustified] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   function reload() {
     api.get<Attendance[]>(`/students/${studentId}/attendance`).then(setRecords);
   }
   useEffect(reload, [studentId]);
+
+  function startEdit(r: Attendance) {
+    setEditingId(r.id);
+    setEditStatus(r.status);
+    setEditJustified(r.justified);
+    setError(null);
+  }
+
+  async function saveEdit(id: string) {
+    setError(null);
+    setSavingEdit(true);
+    try {
+      await api.patch(`/attendance/${id}`, { status: editStatus, justified: editJustified });
+      setEditingId(null);
+      reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible de corriger cette présence.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   async function handleAdd(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -475,27 +500,59 @@ function AttendanceSection({ studentId }: { studentId: string }) {
               <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Date</th>
               <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Statut</th>
               <th className="text-left text-[11.5px] font-semibold text-ink/40 uppercase tracking-wide px-4 pb-2.5 pt-4 border-b border-line">Justifié</th>
+              <th className="border-b border-line"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
             {records.length === 0 && (
-              <tr><td colSpan={3} className="px-4 py-6 text-ink/50">Aucune présence enregistrée.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-6 text-ink/50">Aucune présence enregistrée.</td></tr>
             )}
             {records.map((r) => (
               <tr key={r.id}>
                 <td className="px-4 py-2.5 text-ink">{r.date}</td>
-                <td className="px-4 py-2.5">
-                  <StatusPill
-                    label={r.status === "present" ? "Présent" : r.status === "absent" ? "Absent" : "Retard"}
-                    tone={r.status === "absent" ? "bad" : r.status === "late" ? "warn" : "ok"}
-                  />
-                </td>
-                <td className="px-4 py-2.5 text-ink/70">{r.justified ? "Oui" : "—"}</td>
+                {editingId === r.id ? (
+                  <>
+                    <td className="px-4 py-2">
+                      <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)}
+                        className="rounded border border-line bg-white px-2.5 py-1.5 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy">
+                        <option value="present">Présent</option>
+                        <option value="absent">Absent</option>
+                        <option value="late">Retard</option>
+                      </select>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <label className="flex items-center gap-1.5 text-ink/70">
+                        <input type="checkbox" checked={editJustified} onChange={(e) => setEditJustified(e.target.checked)} className="rounded border-line" />
+                        Justifié
+                      </label>
+                    </td>
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                      <button onClick={() => saveEdit(r.id)} disabled={savingEdit} className="text-navy underline underline-offset-2 hover:text-navy-light mr-3 disabled:opacity-50">
+                        {savingEdit ? "…" : "Enregistrer"}
+                      </button>
+                      <button onClick={() => setEditingId(null)} className="text-ink/50 underline underline-offset-2">Annuler</button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-2.5">
+                      <StatusPill
+                        label={r.status === "present" ? "Présent" : r.status === "absent" ? "Absent" : "Retard"}
+                        tone={r.status === "absent" ? "bad" : r.status === "late" ? "warn" : "ok"}
+                      />
+                    </td>
+                    <td className="px-4 py-2.5 text-ink/70">{r.justified ? "Oui" : "—"}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <button onClick={() => startEdit(r)} className="text-navy underline underline-offset-2 hover:text-navy-light">Modifier</button>
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {error && <p className="mt-2 text-sm text-brick">{error}</p>}
     </section>
   );
 }

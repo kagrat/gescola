@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutGrid, Users, GraduationCap, Wallet, ShieldCheck, Bell, ScrollText, UtensilsCrossed, Library as LibraryIcon,
   Settings, UserCircle, BookOpen, CalendarDays, CalendarClock, ShieldAlert, FileText, MessageSquare, Megaphone,
+  ClipboardCheck,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../lib/api";
@@ -105,6 +106,9 @@ function navItemsFor(role: string) {
 
   if (["school_admin", "staff", "teacher", "censor", "supervisor", "accountant", "founder"].includes(role)) {
     items.push({ to: "/eleves", label: "Élèves", icon: Users });
+  }
+  if (["school_admin", "staff", "teacher", "censor", "supervisor", "founder"].includes(role)) {
+    items.push({ to: "/presences", label: "Présences", icon: ClipboardCheck });
   }
   if (["school_admin", "staff", "teacher", "censor", "supervisor", "founder"].includes(role)) {
     items.push({ to: "/classes-matieres", label: "Classes & Matières", icon: BookOpen });

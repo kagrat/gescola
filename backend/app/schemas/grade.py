@@ -56,6 +56,44 @@ class AttendanceCreate(BaseModel):
     justified: bool = False
 
 
+class AttendanceUpdate(BaseModel):
+    status: AttendanceStatus | None = None
+    justified: bool | None = None
+
+
+class BulkAttendanceEntry(BaseModel):
+    student_id: uuid.UUID
+    status: AttendanceStatus
+    justified: bool = False
+
+
+class BulkAttendanceCreate(BaseModel):
+    class_id: uuid.UUID
+    date: date
+    entries: list[BulkAttendanceEntry]
+
+    @field_validator("entries")
+    @classmethod
+    def check_entries(cls, v: list["BulkAttendanceEntry"]) -> list["BulkAttendanceEntry"]:
+        if not v:
+            raise ValueError("Aucun élève à enregistrer.")
+        ids = [e.student_id for e in v]
+        if len(set(ids)) != len(ids):
+            raise ValueError("Un élève est indiqué plusieurs fois.")
+        if len(v) > 300:
+            raise ValueError("Trop d'élèves en une seule fois.")
+        return v
+
+
+class RosterAttendanceOut(BaseModel):
+    student_id: uuid.UUID
+    first_name: str
+    last_name: str
+    attendance_id: uuid.UUID | None
+    status: AttendanceStatus | None
+    justified: bool
+
+
 class AttendanceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID

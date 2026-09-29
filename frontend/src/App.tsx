@@ -29,6 +29,7 @@ import MyTimetablePage from "./pages/MyTimetablePage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import MessagesPage from "./pages/MessagesPage";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
+import AttendancePage from "./pages/AttendancePage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="bulletins" element={<BulletinsPage />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="annonces" element={<AnnouncementsPage />} />
+            <Route path="presences" element={<AttendancePage />} />
             <Route path="classes-matieres" element={<AcademicPage />} />
             <Route path="affectations" element={<TeachingPage />} />
             <Route path="mes-classes" element={<MyClassesPage />} />

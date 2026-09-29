@@ -72,3 +72,24 @@ def is_teacher_assigned(db: Session, *, tenant_id: uuid.UUID, teacher_id: uuid.U
             TeacherAssignment.class_id == class_id, TeacherAssignment.subject_id == subject_id,
         )
     ).first() is not None
+
+
+def teacher_teaches_class(db: Session, *, tenant_id: uuid.UUID, teacher_id: uuid.UUID, class_id: uuid.UUID) -> bool:
+    """Vrai si l'enseignant est professeur principal de cette classe OU y a au
+    moins une affectation, toute matière confondue. À distinguer de
+    `is_teacher_assigned`, qui vérifie une affectation classe+matière précise
+    (notes, cahier de texte, appréciations) : ici, la restriction porte sur la
+    classe seule, sans matière — présences, messagerie."""
+    is_head = db.execute(
+        select(SchoolClass.id).where(
+            SchoolClass.id == class_id, SchoolClass.tenant_id == tenant_id, SchoolClass.head_teacher_id == teacher_id
+        )
+    ).first() is not None
+    if is_head:
+        return True
+    return db.execute(
+        select(TeacherAssignment.id).where(
+            TeacherAssignment.tenant_id == tenant_id, TeacherAssignment.teacher_id == teacher_id,
+            TeacherAssignment.class_id == class_id,
+        )
+    ).first() is not None
