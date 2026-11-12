@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import Avatar from "../components/Avatar";
 import StatusPill from "../components/StatusPill";
@@ -28,29 +28,64 @@ const STATUS_PILL: Record<string, { label: string; tone: "ok" | "warn" | "bad" |
   archived: { label: "Archivé", tone: "neutral" },
 };
 
+const PAGE_SIZE = 25;
+
 export default function StudentsPage() {
   const { user } = useAuth();
   const canManage = roleCan(user?.role, CAN_MANAGE_REGISTRY);
   const [students, setStudents] = useState<Student[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [classFilter, setClassFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("active");
+  const [offset, setOffset] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const requestId = useRef(0);
 
-  function reload() {
+  // La saisie dans la recherche n'envoie une requête qu'après une courte pause.
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // Toute modification d'un filtre ramène à la première page.
+  useEffect(() => setOffset(0), [debounced, classFilter, statusFilter]);
+
+  const load = useCallback(() => {
+    const id = ++requestId.current;
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset) });
+    if (debounced) params.set("q", debounced);
+    if (classFilter === "none") params.set("unassigned", "true");
+    else if (classFilter) params.set("class_id", classFilter);
+    if (statusFilter) params.set("status", statusFilter);
     setLoading(true);
     api
-      .get<Student[]>("/students")
-      .then(setStudents)
-      .finally(() => setLoading(false));
-    api.get<SchoolClass[]>("/classes").then(setClasses).catch(() => setClasses([]));
-  }
+      .page<Student>(`/students?${params}`)
+      .then((page) => {
+        if (id !== requestId.current) return; // une réponse plus ancienne ne remplace jamais une plus récente
+        setStudents(page.items);
+        setTotal(page.total);
+        setLoadError(null);
+      })
+      .catch(() => id === requestId.current && setLoadError("Impossible de charger les élèves. Réessayez."))
+      .finally(() => id === requestId.current && setLoading(false));
+  }, [debounced, classFilter, statusFilter, offset]);
 
-  useEffect(reload, []);
+  useEffect(load, [load]);
+  useEffect(() => {
+    api.get<SchoolClass[]>("/classes").then(setClasses).catch(() => setClasses([]));
+  }, []);
 
   const className = (id: string | null) => classes.find((c) => c.id === id)?.name ?? "—";
+  const count = total ?? 0;
+  const from = count === 0 ? 0 : offset + 1;
+  const to = Math.min(offset + PAGE_SIZE, count);
 
   async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -68,7 +103,7 @@ export default function StudentsPage() {
         guardian_phone: form.get("guardian_phone") || null,
       });
       setShowForm(false);
-      reload();
+      load();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Impossible d'enregistrer l'élève.");
     } finally {
@@ -76,17 +111,13 @@ export default function StudentsPage() {
     }
   }
 
-  const filtered = students.filter((s) =>
-    `${s.first_name} ${s.last_name}`.toLowerCase().includes(query.toLowerCase())
-  );
-
   return (
     <div>
       <div className="px-10 py-8 border-b border-line flex items-center justify-between">
         <div>
           <h1 className="font-display text-[21px] font-bold text-ink">Élèves</h1>
           <p className="text-[12.5px] text-ink/60 mt-0.5">
-            {students.length} élève{students.length > 1 ? "s" : ""} inscrit{students.length > 1 ? "s" : ""}
+            {total === null ? "Chargement…" : `${count.toLocaleString("fr-FR")} élève${count > 1 ? "s" : ""}${statusFilter === "active" ? " actif" + (count > 1 ? "s" : "") : ""}`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -97,6 +128,15 @@ export default function StudentsPage() {
               className="flex-1 outline-none text-ink placeholder:text-ink/40 bg-transparent"
             />
           </div>
+          {canManage && (
+            <Link
+              to="/eleves/import"
+              className="flex items-center gap-1.5 rounded-lg border border-line bg-white text-ink text-[13.5px] font-semibold px-4 py-2.5 hover:bg-paper transition"
+            >
+              <Upload className="w-4 h-4" strokeWidth={2} />
+              Importer
+            </Link>
+          )}
           {canManage && (
             <button
               onClick={() => setShowForm((v) => !v)}
@@ -109,7 +149,24 @@ export default function StudentsPage() {
         </div>
       </div>
 
-      <div className="px-10 py-8">
+      <div className="px-10 pt-6 flex flex-wrap items-center gap-3 text-[13.5px]">
+        <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} aria-label="Filtrer par classe"
+          className="rounded-lg border border-line bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky/30">
+          <option value="">Toutes les classes</option>
+          <option value="none">Sans classe</option>
+          {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filtrer par statut"
+          className="rounded-lg border border-line bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky/30">
+          <option value="active">Actifs</option>
+          <option value="transferred">Transférés</option>
+          <option value="graduated">Diplômés</option>
+          <option value="archived">Archivés</option>
+          <option value="">Tous les statuts</option>
+        </select>
+      </div>
+
+      <div className="px-10 py-6">
         {showForm && (
           <form onSubmit={handleCreate} className="mb-6 border border-line rounded-lg bg-white p-5 grid sm:grid-cols-2 gap-4">
             <Field name="first_name" label="Prénom" required />
@@ -162,13 +219,16 @@ export default function StudentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {loading && (
+              {loading && students.length === 0 && (
                 <tr><td colSpan={5} className="px-5 py-6 text-ink/50">Chargement…</td></tr>
               )}
-              {!loading && filtered.length === 0 && (
+              {loadError && (
+                <tr><td colSpan={5} className="px-5 py-6 text-brick">{loadError}</td></tr>
+              )}
+              {!loading && !loadError && students.length === 0 && (
                 <tr><td colSpan={5} className="px-5 py-8 text-ink/50">Aucun élève trouvé.</td></tr>
               )}
-              {filtered.map((s) => {
+              {students.map((s) => {
                 const pill = STATUS_PILL[s.status] ?? { label: s.status, tone: "neutral" as const };
                 return (
                   <tr key={s.id} className="hover:bg-paper/60 transition">
@@ -189,6 +249,19 @@ export default function StudentsPage() {
               })}
             </tbody>
           </table>
+        </div>
+        <div className="flex items-center justify-between mt-4 text-[13px] text-ink/60">
+          <span>{count === 0 ? "" : `${from.toLocaleString("fr-FR")}–${to.toLocaleString("fr-FR")} sur ${count.toLocaleString("fr-FR")}`}</span>
+          <div className="flex items-center gap-2">
+            <button type="button" disabled={offset === 0 || loading} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+              className="flex items-center gap-1 rounded-lg border border-line bg-white px-3 py-1.5 hover:bg-paper disabled:opacity-40 transition">
+              <ChevronLeft className="w-4 h-4" strokeWidth={1.8} /> Précédent
+            </button>
+            <button type="button" disabled={offset + PAGE_SIZE >= count || loading} onClick={() => setOffset(offset + PAGE_SIZE)}
+              className="flex items-center gap-1 rounded-lg border border-line bg-white px-3 py-1.5 hover:bg-paper disabled:opacity-40 transition">
+              Suivant <ChevronRight className="w-4 h-4" strokeWidth={1.8} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

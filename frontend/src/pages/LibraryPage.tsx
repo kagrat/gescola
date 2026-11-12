@@ -34,7 +34,7 @@ function LibraryPageContent() {
 
   function reload() {
     api.get<Book[]>("/library/books").then(setBooks);
-    api.get<Student[]>("/students").then(setStudents);
+    api.all<Student>("/students").then(setStudents);
   }
   useEffect(reload, []);
 

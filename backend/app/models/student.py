@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Enum, ForeignKey, String
+from sqlalchemy import Boolean, Date, Enum, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,6 +23,10 @@ class StudentGender(str, enum.Enum):
 
 class Student(Base, TenantScopedMixin, TimestampMixin):
     __tablename__ = "students"
+    __table_args__ = (
+        Index("ix_students_tenant_name", "tenant_id", "last_name", "first_name", "id"),
+        Index("ix_students_tenant_class_status", "tenant_id", "class_id", "status"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)

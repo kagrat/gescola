@@ -40,6 +40,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
+    # Sans cette ligne, le navigateur (site sur un autre domaine que l'API) ne
+    # peut pas lire le total de la pagination : le serveur l'enverrait pour rien.
+    expose_headers=["X-Total-Count"],
 )
 
 

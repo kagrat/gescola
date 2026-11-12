@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.models.academic import SchoolCycle
 from app.models.student import StudentGender, StudentStatus
@@ -80,7 +80,21 @@ class StudentCreate(BaseModel):
     guardian_email: EmailStr | None = None
 
 
+class StudentStatusChange(BaseModel):
+    status: StudentStatus
+    reason: str = Field(min_length=3, max_length=500)
+
+
 class StudentUpdate(BaseModel):
+    @model_validator(mode="before")
+    @classmethod
+    def _status_has_its_own_endpoint(cls, data):
+        # Un changement de statut doit être motivé et journalisé : il ne passe
+        # que par POST /students/{id}/status (jamais en silence par ce PATCH).
+        if isinstance(data, dict) and "status" in data:
+            raise ValueError("Le statut se modifie via POST /students/{id}/status (motif obligatoire).")
+        return data
+
     first_name: str | None = None
     last_name: str | None = None
     date_of_birth: date | None = None
@@ -91,7 +105,6 @@ class StudentUpdate(BaseModel):
     guardian_name: str | None = None
     guardian_phone: str | None = None
     guardian_email: EmailStr | None = None
-    status: StudentStatus | None = None
 
 
 class StudentOut(BaseModel):
@@ -108,3 +121,32 @@ class StudentOut(BaseModel):
     guardian_phone: str | None
     guardian_email: str | None
     status: StudentStatus
+
+
+class ImportIssueOut(BaseModel):
+    row: int
+    message: str
+    field: str | None = None
+
+
+class ImportPreviewRow(BaseModel):
+    row: int
+    last_name: str
+    first_name: str
+    class_name: str | None = Field(default=None, alias="class")
+    matricule: str | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class StudentImportReport(BaseModel):
+    dry_run: bool
+    total_rows: int
+    valid_rows: int
+    imported: int
+    error_count: int
+    warning_count: int
+    errors: list[ImportIssueOut]
+    warnings: list[ImportIssueOut]
+    ignored_columns: list[str]
+    preview: list[ImportPreviewRow]

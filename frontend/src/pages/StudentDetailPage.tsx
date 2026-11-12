@@ -90,7 +90,10 @@ export default function StudentDetailPage() {
       <h1 className="font-display text-3xl font-medium text-ink mt-2">
         {student.first_name} {student.last_name}
       </h1>
-      <span className="inline-block mt-1"><StatusPill label={student.status === "active" ? "Actif" : student.status} tone={student.status === "active" ? "ok" : "neutral"} /></span>
+      <div className="flex items-center gap-3 mt-1">
+        <StatusPill label={STATUS_LABEL[student.status] ?? student.status} tone={student.status === "active" ? "ok" : student.status === "archived" ? "neutral" : "warn"} />
+        {roleCan(user?.role, CAN_MANAGE_REGISTRY) && <StatusChange student={student} onUpdated={reloadStudent} />}
+      </div>
 
       {roleCan(user?.role, CAN_MANAGE_REGISTRY) && (
         <ClassAssignment studentId={studentId} classId={student.class_id} onUpdated={reloadStudent} />
@@ -105,6 +108,60 @@ export default function StudentDetailPage() {
       {roleCan(user?.role, CAN_MANAGE_FINANCE) && <CanteenSection studentId={studentId} />}
       {roleCan(user?.role, CAN_READ_INCIDENTS) && <DisciplineSection studentId={studentId} />}
     </div>
+  );
+}
+
+// ---------------- Statut (actif / transféré / diplômé / archivé) ----------------
+
+const STATUS_LABEL: Record<string, string> = {
+  active: "Actif", transferred: "Transféré", graduated: "Diplômé", archived: "Archivé",
+};
+
+function StatusChange({ student, onUpdated }: { student: Student; onUpdated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const options = Object.keys(STATUS_LABEL).filter((k) => k !== student.status);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    const form = new FormData(e.currentTarget);
+    try {
+      await api.post(`/students/${student.id}/status`, { status: form.get("status"), reason: String(form.get("reason") ?? "").trim() });
+      setOpen(false);
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible de changer le statut.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return <button onClick={() => setOpen(true)} className="text-sm text-navy underline underline-offset-2 hover:text-navy-light">Changer le statut</button>;
+  }
+  const fieldCls = "rounded border border-line bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-navy/30 focus:border-navy";
+  return (
+    <form onSubmit={handleSubmit} className="w-full border border-line rounded bg-white p-4 grid sm:grid-cols-3 gap-3 items-end text-sm">
+      <div>
+        <label htmlFor="new_status" className="block text-xs font-medium text-ink/60 mb-1">Nouveau statut</label>
+        <select id="new_status" name="status" required className={`${fieldCls} w-full`}>
+          {options.map((k) => <option key={k} value={k}>{STATUS_LABEL[k]}</option>)}
+        </select>
+      </div>
+      <div className="sm:col-span-2">
+        <label htmlFor="reason" className="block text-xs font-medium text-ink/60 mb-1">Motif (obligatoire, conservé dans le journal)</label>
+        <input id="reason" name="reason" required minLength={3} maxLength={500} placeholder="Ex. : transfert vers un autre établissement" className={`${fieldCls} w-full`} />
+      </div>
+      <p className="sm:col-span-3 text-xs text-ink/60">Un élève qui n'est plus « actif » disparaît des appels, des moyennes et des listes de classe ; son historique et ses bulletins publiés sont conservés.</p>
+      {error && <p role="alert" className="sm:col-span-3 text-brick">{error}</p>}
+      <div className="sm:col-span-3 flex gap-3">
+        <button type="submit" disabled={busy} className="rounded bg-ochre text-navy-deep font-medium px-4 py-2 hover:bg-ochre-dark transition disabled:opacity-60">{busy ? "Enregistrement…" : "Confirmer"}</button>
+        <button type="button" onClick={() => setOpen(false)} className="text-ink/60 px-2">Annuler</button>
+      </div>
+    </form>
   );
 }
 

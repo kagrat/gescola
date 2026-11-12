@@ -104,9 +104,10 @@ function useActiveStudentCount(enabled: boolean) {
   const [count, setCount] = useState<number | null>(null);
   useEffect(() => {
     if (!enabled) return;
+    // Une seule ligne demandée : seul le total (en-tête X-Total-Count) nous intéresse.
     api
-      .get<Student[]>("/students")
-      .then((list) => setCount(list.filter((s) => s.status === "active").length))
+      .page<Student>("/students?status=active&limit=1")
+      .then((page) => setCount(page.total))
       .catch(() => setCount(null));
   }, [enabled]);
   return count;
@@ -118,13 +119,14 @@ function DirectionOverview() {
   const { user } = useAuth();
   const isFounder = user?.role === "founder";
   const [students, setStudents] = useState<Student[] | null>(null);
+  const [activeCount, setActiveCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get<Student[]>("/students").then(setStudents).catch(() => setLoadError("Impossible de charger les effectifs pour le moment."));
+    api.page<Student>("/students?status=active&limit=6")
+      .then((page) => { setStudents(page.items); setActiveCount(page.total); })
+      .catch(() => setLoadError("Impossible de charger les effectifs pour le moment."));
   }, []);
-
-  const activeCount = students?.filter((s) => s.status === "active").length ?? 0;
 
   return (
     <div>
@@ -173,9 +175,13 @@ function DirectionOverview() {
 function RegistrarOverview() {
   const { user } = useAuth();
   const [students, setStudents] = useState<Student[] | null>(null);
+  const [activeCount, setActiveCount] = useState(0);
 
-  useEffect(() => { api.get<Student[]>("/students").then(setStudents).catch(() => setStudents([])); }, []);
-  const activeCount = students?.filter((s) => s.status === "active").length ?? 0;
+  useEffect(() => {
+    api.page<Student>("/students?status=active&limit=6")
+      .then((page) => { setStudents(page.items); setActiveCount(page.total); })
+      .catch(() => setStudents([]));
+  }, []);
 
   return (
     <div>

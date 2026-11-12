@@ -255,7 +255,7 @@ function ComposeDialog({ prefill, onClose, onCreated }: { prefill: { studentId?:
       return;
     }
     (async () => {
-      const all = await api.get<Student[]>("/students").catch(() => [] as Student[]);
+      const all = await api.all<Student>("/students").catch(() => [] as Student[]);
       let allowed = all;
       if (user?.role === "teacher") {
         const [assignments, classes] = await Promise.all([

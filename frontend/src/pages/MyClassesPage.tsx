@@ -26,7 +26,7 @@ export default function MyClassesPage() {
     });
     api.get<SchoolClass[]>("/classes").then(setClasses);
     api.get<Subject[]>("/subjects").then(setSubjects);
-    api.get<Student[]>("/students").then(setStudents);
+    api.all<Student>("/students").then(setStudents);
   }, [user?.id]);
 
   const className = (id: string) => classes.find((c) => c.id === id)?.name ?? "—";

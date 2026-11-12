@@ -51,7 +51,7 @@ function DisciplinePageContent() {
   function reload() {
     api.get<Incident[]>(`/incidents${filter ? `?status=${filter}` : ""}`).then(setIncidents).catch(() => setIncidents([]));
   }
-  useEffect(() => { api.get<Student[]>("/students").then(setStudents).catch(() => setStudents([])); }, []);
+  useEffect(() => { api.all<Student>("/students").then(setStudents).catch(() => setStudents([])); }, []);
   useEffect(reload, [filter]);
 
   const studentName = (id: string) => {

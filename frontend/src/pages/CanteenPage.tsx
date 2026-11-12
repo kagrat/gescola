@@ -32,7 +32,7 @@ function CanteenPageContent() {
 
   function reload() {
     api.get<Plan[]>("/canteen/plans").then(setPlans);
-    api.get<Student[]>("/students").then(setStudents);
+    api.all<Student>("/students").then(setStudents);
   }
   useEffect(reload, []);
 

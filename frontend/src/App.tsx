@@ -5,6 +5,7 @@ import SignupPage from "./pages/SignupPage";
 import DashboardLayout from "./pages/DashboardLayout";
 import OverviewPage from "./pages/OverviewPage";
 import StudentsPage from "./pages/StudentsPage";
+import StudentImportPage from "./pages/StudentImportPage";
 import StudentDetailPage from "./pages/StudentDetailPage";
 import StaffPage from "./pages/StaffPage";
 import MyChildrenPage from "./pages/MyChildrenPage";
@@ -27,14 +28,17 @@ import MyClassesPage from "./pages/MyClassesPage";
 import TimetablePage from "./pages/TimetablePage";
 import MyTimetablePage from "./pages/MyTimetablePage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
+import RequireRole from "./components/RequireRole";
+import { CAN_MANAGE_REGISTRY } from "./lib/permissions";
 import MessagesPage from "./pages/MessagesPage";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
 import AttendancePage from "./pages/AttendancePage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-ink/40">Chargement…</div>;
+  // Les hooks s'appellent toujours dans le même ordre, AVANT tout retour anticipé (règle des Hooks de React).
   const location = useLocation();
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-ink/40">Chargement…</div>;
   if (!user) return <Navigate to="/connexion" replace />;
   // Mot de passe provisoire : rien d'autre n'est accessible tant qu'il n'a pas été remplacé
   // (le serveur applique la même règle — cette redirection n'est qu'un confort).
@@ -60,6 +64,7 @@ export default function App() {
           >
             <Route index element={<OverviewPage />} />
             <Route path="eleves" element={<StudentsPage />} />
+            <Route path="eleves/import" element={<RequireRole roles={CAN_MANAGE_REGISTRY}><StudentImportPage /></RequireRole>} />
             <Route path="eleves/:studentId" element={<StudentDetailPage />} />
             <Route path="personnel" element={<StaffPage />} />
             <Route path="mes-enfants" element={<MyChildrenPage />} />

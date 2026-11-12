@@ -110,7 +110,7 @@ function StaffPageContent() {
 
   function reload() {
     api.get<StaffUser[]>("/users").then(setUsers);
-    api.get<Student[]>("/students").then(setStudents);
+    api.all<Student>("/students").then(setStudents);
   }
 
   useEffect(reload, []);

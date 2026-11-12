@@ -29,3 +29,5 @@ pillow==12.1.1
 charset-normalizer==3.4.6
 
 # --- Dépendances de test (à installer séparément en dev, ex: pip install -r requirements-dev.txt) ---
+openpyxl==3.1.5
+defusedxml==0.7.1
