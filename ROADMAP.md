@@ -103,7 +103,8 @@
 | AU-32 | Reçus : pas de reçu « annulé » ni d'avoir/remboursement (un paiement saisi ne se supprime pas) ; le solde indiqué est celui **au moment de ce paiement** (calculé dans l'ordre des numéros de reçu) | P2 | ⏳ |
 | AU-33 | Attestation : texte unique non personnalisable, réservée aux élèves actifs affectés à une classe, année courante seulement ; pas de certificat de radiation / de transfert / de fréquentation, pas de signature ni cachet numérisés sur ces documents (espace laissé pour le cachet à la main) | P2 | ⏳ |
 | AU-34 | Vérification publique : limitée à 30 requêtes/minute/IP, en mémoire du processus (à passer sur Redis en multi-instance, voir PR). Le lien du QR dépend de `PUBLIC_APP_URL` : **à renseigner sur Railway** avec l'adresse réelle du site | P1 | ⏳ owner |
-| AU-11 | Exports (Excel/PDF) : listes de classe, présences, finances | P1 | ⏳ |
+| AU-11 | **Exports Excel** : liste des élèves (filtres classe/statut), situation financière (synthèse + factures + journal des encaissements, mêmes chiffres que l'écran), présences (récapitulatif par élève + détail, période ≤ 366 jours). Réservés aux rôles concernés (l'enseignant n'exporte pas), plafonnés à 20 000 lignes, **protégés contre l'injection de formules**, chaque export tracé au journal d'audit. ✅ v28. Limites : AU-35 |
+| AU-35 | Exports : format Excel uniquement (pas de PDF ni CSV), pas d'export des notes/résultats par classe (les bulletins couvrent l'officiel), pas d'export programmé ni envoyé par e-mail ; l'écran Présences exporte la période choisie, pas un mois civil prédéfini | P2 | ⏳ |
 | AU-12 | Emploi du temps : **modifier** un créneau (création/suppression seulement) ; conflits de salle ; impression | P1 | ⏳ |
 | AU-13 | Photo de l'élève ; cartes scolaires | P2 | ⏳ |
 | AU-14 | Règlement intérieur (stockage/consultation) ; rapports d'absentéisme (élèves fréquemment absents) | P2 | ⏳ |
@@ -135,7 +136,7 @@ Constat de départ : un logiciel de gestion scolaire est jugé sur ce qu'il fait
 | CP-08 | Barèmes : une seule remise en % par élève (pas de détection automatique de la fratrie, pas de remise par tranche ni en montant fixe) ; une remise modifiée ne réécrit jamais les factures déjà créées ; pas de frais d'inscription distincts ni de frais optionnels (transport, uniforme) ; pas de relance automatique à l'échéance (dépend de CP-03) | P2 | ⏳ |
 | CP-02 | **Paiement Mobile Money réel** (agrégateur type KkiaPay/FedaPay) : le parent paie depuis son téléphone, le reçu et la facture se mettent à jour seuls | Premier moyen de paiement au Bénin ; = CC-02 (dépend d'un contrat et de clés API) | ⏳ owner |
 | CP-03 | **SMS / WhatsApp** : relances d'impayés, absences, convocations | Les parents ne lisent pas les e-mails ; = CC-03 (dépend d'un fournisseur) | ⏳ owner |
-| CP-04 | **Exports Excel/PDF** (listes, présences, finances) | Exigé par toute direction et par les inspections ; = AU-11 | ⏳ |
+| CP-04 | **Exports Excel** (listes, présences, finances) | Exigé par toute direction et par les inspections ; = AU-11 | ✅ v28 |
 | CP-05 | **Application installable (PWA)** et mode dégradé pour connexion instable | Smartphone d'abord ; = CC-05 en version légère | ⏳ |
 | CP-06 | **Reprise des données depuis Educ Master / Excel** (import élèves déjà livré, à étendre aux notes et finances) | Lève le frein n°1 au changement d'outil | ⏳ |
 | CP-07 | **Alertes précoces** (décrochage : absences répétées + notes en baisse) pour la Direction | Valeur pédagogique visible dès la démo | ⏳ |
@@ -180,7 +181,7 @@ Constat de départ : un logiciel de gestion scolaire est jugé sur ce qu'il fait
 3. ~~**PL-5 Messagerie** (MQ-08, puis AU-18)~~ — ✅ livré (v14).
 4. ~~**Appel en masse et correction après coup** (AU-04/05)~~ — ✅ livré (v20).
 4 bis. ~~**Socle élèves** : statut (AU-23), pagination/recherche des élèves (AU-08, partiel), import (AU-06)~~ — ✅ livré (v21).
-4 ter. ~~**Passage d'année** (AU-07)~~ — ✅ livré (v22) ; ~~années sur présences et factures (AU-28)~~ — ✅ livré (v23). ~~limite du plan (AU-24)~~ — ✅ livré (v24). ~~vue financière (AU-09)~~ — ✅ livré (v25) ; ~~reçus/attestations vérifiables (AU-10)~~ — ✅ livré (v26). ~~barème de frais et remises (CP-01)~~ — ✅ livré (v27). Prochain : exports (AU-11/CP-04), puis reprise de données (CP-06) et alertes précoces (CP-07).
+4 ter. ~~**Passage d'année** (AU-07)~~ — ✅ livré (v22) ; ~~années sur présences et factures (AU-28)~~ — ✅ livré (v23). ~~limite du plan (AU-24)~~ — ✅ livré (v24). ~~vue financière (AU-09)~~ — ✅ livré (v25) ; ~~reçus/attestations vérifiables (AU-10)~~ — ✅ livré (v26). ~~barème de frais et remises (CP-01)~~ — ✅ livré (v27). ~~exports (AU-11)~~ — ✅ livré (v28). Prochain : reprise de données Educ Master/Excel (CP-06), alertes précoces (CP-07), puis PWA (CP-05).
 5. **Compléter la maquette** (MQ-02 à MQ-07) ; reçus/attestations/exports (AU-10/11).
 6. **Bulletins étendus** (BU-04 à BU-08).
 7. **Production** (PR-*, CC-02/03/04) avant le premier établissement réel.
@@ -202,14 +203,16 @@ Constat de départ : un logiciel de gestion scolaire est jugé sur ce qu'il fait
 | DEF-12 | **Année scolaire « flottante »** : un établissement qui n'avait jamais réglé son année voyait son année courante se déduire de la date du jour ; une fois les notes rattachées à une année, elle aurait basculé toute seule au 1ᵉʳ septembre et **fait disparaître les notes des écrans**. Repéré en concevant AU-07 ; évité en figeant l'année dès la 1ʳᵉ note et dans la migration | Haute (évitée) | v22 |
 | DEF-13 | **Encaissement sans garde-fou** : un paiement pouvait dépasser le solde (facture « payée » à 150 %), deux clics simultanés enregistraient deux fois la somme, et aucun paiement n'était tracé au journal d'audit. Repéré en concevant AU-09 ; corrigé : verrou de ligne, refus 409 si déjà soldée, 422 si > solde restant, entrée `payment.recorded` | **Haute** | v25 |
 | DEF-14 | **Limite de requêtes contournable** : avec la bibliothèque de limitation, le compteur d'une route à paramètre d'URL (`/public/verify/{code}`) est tenu **par URL complète** : un attaquant qui change de code à chaque essai n'était jamais freiné. Trouvé en testant la limite de la vérification publique ; corrigé par un compteur partagé (`shared_limit`). Les autres limites (connexion, messagerie) n'ont pas de paramètre d'URL et ne sont pas concernées | **Haute** (évitée avant mise en ligne) | v26 |
+| DEF-15 | **Exports : numéros de téléphone altérés** par la protection anti-formule (le préfixe d'apostrophe s'appliquait aussi à « +229… », omniprésent au Bénin). Trouvé en lisant le fichier exporté ; la règle laisse maintenant intacts les numéros et nombres, et toute cellule texte est écrite comme texte | Moyenne | v28 |
 | DEF-09 | **Aucune contrainte n'empêchait deux enregistrements de présence pour le même élève le même jour** — deux appels distincts, ou un double clic, créaient des lignes contradictoires. Corrigé par une contrainte d'unicité en base (`uq_attendance_student_date`) et un upsert systématique | Moyenne | v20 |
 
 ## 10. Historique des livraisons
 
 Voir le README (« Ce qui est inclus », Livraisons 1 à 11+) et `SECURITY.md`.
 
-- **v27** : barèmes de frais par niveau en tranches datées, facturation d'une classe en un clic, remises par élève (CP-01) ; 335 tests.
-- **v26** : reçus numérotés et attestations de scolarité en PDF, QR code et page publique de vérification, accès parents (AU-10) ; 335 tests ; section « différenciateurs compétitifs » (CP).
+- **v28** : exports Excel élèves / finances / présences, sans injection de formule, audités (AU-11) ; 345 tests.
+- **v27** : barèmes de frais par niveau en tranches datées, facturation d'une classe en un clic, remises par élève (CP-01) ; 345 tests.
+- **v26** : reçus numérotés et attestations de scolarité en PDF, QR code et page publique de vérification, accès parents (AU-10) ; 345 tests ; section « différenciateurs compétitifs » (CP).
 - **v25** : vue financière globale (AU-09), facturation par classe, encaissements sécurisés (DEF-13) ; 308 tests.
 - **v24** : limite d'élèves du plan appliquée (AU-24) : création, réactivation, import ; verrou anti-concurrence, bandeaux et jauge ; 291 tests.
 - **v23** : factures et assiduité rattachées à l'année (AU-28), arriérés séparés dans les Rapports et la vue réseau, avertissement au passage d'année ; 278 tests.

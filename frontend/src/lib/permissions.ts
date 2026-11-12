@@ -51,3 +51,4 @@ export function roleCan(role: string | undefined, allowed: string[]): boolean {
   return !!role && allowed.includes(role);
 }
 export const CAN_VOID_DOCUMENTS = ["school_admin", "founder"];
+export const CAN_EXPORT_ATTENDANCE = ["school_admin", "staff", "censor", "supervisor", "founder"];

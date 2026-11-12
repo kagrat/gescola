@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { Link } from "react-router-dom";
 import { Search, ChevronLeft, ChevronRight, BellRing } from "lucide-react";
 import { api, ApiError } from "../lib/api";
+import ExportButton from "../components/ExportButton";
 import FeePlans from "../components/FeePlans";
 import RequireRole from "../components/RequireRole";
 import StatusPill from "../components/StatusPill";
@@ -44,9 +45,12 @@ function FinanceContent() {
   useEffect(() => { api.get<SchoolClass[]>("/classes").then(setClasses).catch(() => setClasses([])); }, []);
   return (
     <div>
-      <div className="px-10 py-8 border-b border-line">
-        <h1 className="font-display text-[21px] font-bold text-ink">Finances</h1>
-        <p className="text-[12.5px] text-ink/60 mt-0.5">Vue d'ensemble des frais de scolarité de l'établissement.</p>
+      <div className="px-10 py-8 border-b border-line flex items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-[21px] font-bold text-ink">Finances</h1>
+          <p className="text-[12.5px] text-ink/60 mt-0.5">Vue d'ensemble des frais de scolarité de l'établissement.</p>
+        </div>
+        <ExportButton path="/exports/finance" filename="finances.xlsx" label="Exporter l'année (Excel)" />
       </div>
       <SummarySection refreshKey={refresh} />
       <FeePlans classes={classes} onBilled={() => setRefresh((k) => k + 1)} />

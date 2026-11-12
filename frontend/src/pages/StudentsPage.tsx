@@ -4,6 +4,7 @@ import { Search, Plus, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import Avatar from "../components/Avatar";
 import StatusPill from "../components/StatusPill";
+import ExportButton from "../components/ExportButton";
 import QuotaNotice from "../components/QuotaNotice";
 import { useAuth } from "../auth/AuthContext";
 import { CAN_MANAGE_REGISTRY, roleCan } from "../lib/permissions";
@@ -129,6 +130,12 @@ export default function StudentsPage() {
               className="flex-1 outline-none text-ink placeholder:text-ink/40 bg-transparent"
             />
           </div>
+          {canManage && (
+            <ExportButton
+              path={`/exports/students?${new URLSearchParams({ ...(classFilter && classFilter !== "none" ? { class_id: classFilter } : {}), ...(statusFilter ? { status: statusFilter } : {}) })}`}
+              filename="eleves.xlsx"
+            />
+          )}
           {canManage && (
             <Link
               to="/eleves/import"

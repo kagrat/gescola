@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../lib/api";
+import ExportButton from "../components/ExportButton";
+import { useAuth } from "../auth/AuthContext";
 import RequireRole from "../components/RequireRole";
-import { CAN_MANAGE_ATTENDANCE } from "../lib/permissions";
+import { CAN_EXPORT_ATTENDANCE, CAN_MANAGE_ATTENDANCE, roleCan } from "../lib/permissions";
 
 interface SchoolClass { id: string; name: string; }
 interface RosterRow {
@@ -29,6 +31,8 @@ export default function AttendancePage() {
 }
 
 function AttendancePageContent() {
+  const { user } = useAuth();
+  const [exportFrom, setExportFrom] = useState(new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [classId, setClassId] = useState("");
   const [date, setDate] = useState(todayIso());
@@ -100,6 +104,15 @@ function AttendancePageContent() {
           <h1 className="font-display text-3xl font-medium text-ink">Présences</h1>
           <p className="text-sm text-ink/55 mt-1">Faites l'appel d'une classe entière en une seule fois, ou corrigez un appel déjà fait.</p>
         </div>
+        {roleCan(user?.role, CAN_EXPORT_ATTENDANCE) && (
+          <div className="flex items-end gap-3">
+            <label className="text-xs font-semibold text-ink/50">Depuis le
+              <input type="date" value={exportFrom} max={date} onChange={(e) => setExportFrom(e.target.value)} className="block mt-1 rounded border border-line bg-white px-2 py-1.5 text-sm font-normal" />
+            </label>
+            <ExportButton label="Exporter jusqu'au jour choisi" filename="presences.xlsx"
+              path={`/exports/attendance?${new URLSearchParams({ date_from: exportFrom, date_to: date, ...(classId ? { class_id: classId } : {}) })}`} />
+          </div>
+        )}
       </div>
 
       <div className="mt-6 grid sm:grid-cols-[1fr_200px] gap-4 border border-line rounded bg-white p-4">

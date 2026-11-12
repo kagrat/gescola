@@ -77,6 +77,9 @@ CAN_MANAGE_ATTENDANCE = (
     UserRole.TEACHER, UserRole.SCHOOL_ADMIN, UserRole.STAFF, UserRole.CENSOR, UserRole.SUPERVISOR, UserRole.FOUNDER,
 )
 
+# Export des présences : toute la classe/école ; un enseignant n'exporte pas les classes des autres.
+CAN_EXPORT_ATTENDANCE = (UserRole.SCHOOL_ADMIN, UserRole.STAFF, UserRole.CENSOR, UserRole.SUPERVISOR, UserRole.FOUNDER)
+
 # Finances : direction + comptable + fondateur uniquement.
 CAN_MANAGE_FINANCE = (UserRole.SCHOOL_ADMIN, UserRole.ACCOUNTANT, UserRole.FOUNDER)
 
