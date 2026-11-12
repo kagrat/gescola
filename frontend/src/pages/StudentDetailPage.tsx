@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams, Link } from "react-router-dom";
+import { Certificates, PaymentsHistory } from "../components/StudentDocuments";
+import { openPdf } from "../lib/files";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import StatusPill from "../components/StatusPill";
 import { CATEGORY_LABELS, SANCTION_LABELS, SEVERITY, STATUS } from "./DisciplinePage";
 import {
-  CAN_LOCK_GRADES, CAN_MANAGE_ATTENDANCE, CAN_MANAGE_FINANCE, CAN_MANAGE_REGISTRY, CAN_OVERRIDE_LOCKED_GRADES,
+  CAN_LOCK_GRADES, CAN_MANAGE_ATTENDANCE, CAN_MANAGE_FINANCE, CAN_MANAGE_REGISTRY, CAN_OVERRIDE_LOCKED_GRADES, CAN_VOID_DOCUMENTS,
   CAN_READ_GRADES, CAN_READ_INCIDENTS, CAN_READ_REGISTRY, CAN_WRITE_GRADES, roleCan,
 } from "../lib/permissions";
 
@@ -108,6 +110,7 @@ export default function StudentDetailPage() {
       {roleCan(user?.role, CAN_MANAGE_FINANCE) && <FinanceSection studentId={studentId} />}
       {roleCan(user?.role, CAN_MANAGE_REGISTRY) && <LibrarySection studentId={studentId} />}
       {roleCan(user?.role, CAN_MANAGE_FINANCE) && <CanteenSection studentId={studentId} />}
+      {roleCan(user?.role, CAN_MANAGE_REGISTRY) && <Certificates studentId={studentId} mode="staff" canVoid={roleCan(user?.role, CAN_VOID_DOCUMENTS)} />}
       {roleCan(user?.role, CAN_READ_INCIDENTS) && <DisciplineSection studentId={studentId} />}
     </div>
   );
@@ -656,6 +659,7 @@ function FinanceSection({ studentId }: { studentId: string }) {
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [remindMessage, setRemindMessage] = useState<string | null>(null);
+  const [lastReceipt, setLastReceipt] = useState<string | null>(null);
 
   function reload() {
     api.get<Invoice[]>(`/students/${studentId}/invoices`).then(setInvoices);
@@ -686,13 +690,14 @@ function FinanceSection({ studentId }: { studentId: string }) {
     setError(null);
     const form = new FormData(e.currentTarget);
     try {
-      await api.post("/payments", {
+      const paid = await api.post<{ id: string }>("/payments", {
         invoice_id: payingInvoice.id,
         amount: Number(form.get("amount")),
         method: form.get("method"),
         reference: form.get("reference") || null,
       });
       setPayingInvoice(null);
+      setLastReceipt(paid.id);
       reload();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Impossible d'enregistrer le paiement.");
@@ -786,6 +791,13 @@ function FinanceSection({ studentId }: { studentId: string }) {
         </table>
       </div>
       {remindMessage && <p className="mt-2 text-sm text-ink/60">{remindMessage}</p>}
+      {lastReceipt && (
+        <p className="mt-2 text-sm text-pass">
+          Paiement enregistré.{" "}
+          <button type="button" onClick={() => openPdf(`/payments/${lastReceipt}/receipt`)} className="underline underline-offset-2 font-medium">Imprimer le reçu</button>
+        </p>
+      )}
+      <PaymentsHistory base={`/students/${studentId}`} refreshKey={invoices} />
 
       {payingInvoice && (
         <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4">

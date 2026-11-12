@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Certificates, PaymentsHistory } from "../components/StudentDocuments";
 import { api } from "../lib/api";
 import { Download } from "lucide-react";
 
@@ -110,6 +111,9 @@ function ChildCard({ child }: { child: Child }) {
         <Metric label="Absences non justifiées" value={attendance ? String(absences) : "—"} accent={absences > 0 ? "brick" : "pass"} />
         <Metric label="Solde dû" value={invoices ? `${outstanding.toLocaleString("fr-FR")} F` : "—"} accent={outstanding > 0 ? "ochre" : "pass"} />
       </div>
+
+      <PaymentsHistory base={`/children/${child.id}`} />
+      <Certificates studentId={child.id} mode="parent" />
 
       {reportCards.length > 0 && (
         <div className="mt-4 pt-4 border-t border-line">

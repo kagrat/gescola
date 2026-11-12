@@ -50,3 +50,4 @@ export const CAN_CREATE_SCHOOL_ADMIN = ["founder"];
 export function roleCan(role: string | undefined, allowed: string[]): boolean {
   return !!role && allowed.includes(role);
 }
+export const CAN_VOID_DOCUMENTS = ["school_admin", "founder"];

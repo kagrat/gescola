@@ -8,6 +8,7 @@ from app.models.finance import Invoice, InvoiceStatus, Payment
 from app.schemas.finance import InvoiceCreate, InvoiceOut, PaymentCreate
 from app.services.academic_service import get_student_or_404
 from app.services.audit_service import log_action
+from app.services.document_service import RECEIPT, next_number, register_verification
 from app.services.academic_year_service import ensure_academic_year, is_valid_year, next_year
 
 
@@ -76,8 +77,11 @@ def record_payment(
     payment = Payment(
         tenant_id=tenant_id, invoice_id=invoice.id, amount=data.amount,
         method=data.method, reference=data.reference,
+        receipt_number=next_number(db, tenant_id, "receipt_counter"),
     )
     db.add(payment)
+    db.flush()
+    register_verification(db, tenant_id=tenant_id, kind=RECEIPT, ref_id=payment.id)
     db.flush()
     db.refresh(invoice)  # recharge la relation payments pour inclure ce nouveau paiement
 

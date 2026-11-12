@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -58,6 +58,7 @@ class PaymentOut(BaseModel):
     amount: float
     method: PaymentMethod
     reference: str | None
+    receipt_number: int
 
 
 # ---------------- Vue financière globale (AU-09) ----------------
@@ -131,3 +132,42 @@ class BulkInvoiceReport(BaseModel):
     created: int             # factures créées (ou à créer en aperçu)
     already_billed: int      # élèves déjà facturés avec le même libellé et la même année
     total_amount: float
+
+
+# ---------------- Reçus et attestations (AU-10) ----------------
+
+class StudentPaymentRow(BaseModel):
+    id: uuid.UUID
+    invoice_id: uuid.UUID
+    invoice_label: str
+    amount: float
+    method: PaymentMethod
+    reference: str | None
+    receipt_number: int
+    paid_on: date
+
+
+class CertificateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    student_id: uuid.UUID
+    academic_year: str
+    number: int
+    voided_at: datetime | None = None
+    void_reason: str | None = None
+    created_at: datetime
+
+
+class CertificateVoid(BaseModel):
+    reason: str = Field(min_length=5, max_length=300)
+
+
+class PublicVerification(BaseModel):
+    kind: str
+    valid: bool
+    number: int
+    school_name: str
+    issued_on: date
+    student_name: str
+    details: dict[str, str]
+    voided_on: date | None = None

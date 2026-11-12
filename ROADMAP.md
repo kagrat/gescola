@@ -99,7 +99,10 @@
 | AU-08 | **Pagination et recherche côté serveur** : toutes les listes (élèves, etc.) renvoient tout | P0 | 🔧 **élèves ✅ v21** (pages bornées à 500, tri stable, recherche multi-mots, filtres classe/statut, total en en-tête). **Restent non paginées** : journal d'audit, incidents, notifications, comptes du personnel, factures, bulletins, messages — à traiter liste par liste |
 | AU-09 | **Vue financière globale** : liste des factures de tout l'établissement (filtres classe/année/état/recherche, tri par ancienneté ou solde, pagination 25), synthèse (facturé, encaissé, taux de recouvrement, retards par ancienneté 1-30/31-60/61-90/+90 j, tableau par classe, arriérés d'années précédentes) et **facturation d'une classe entière** (aperçu sans écriture puis confirmation ; rejouable sans doublon : un élève déjà facturé pour le même libellé et la même année est ignoré ; seuls les élèves actifs). Réservé direction/comptable/fondateur. Page « Finances » ✅ v25. Limites : pas d'échéancier en plusieurs tranches ni de barème de frais enregistré (le montant se saisit à chaque facturation) ; relance une facture à la fois ; le verrou anti-doublon de la facturation en masse n'est pas démontrable par le client de test (mutation survivante AU-31) ; pas d'export (AU-11) |
 | AU-31 | Facturation en masse : la protection contre deux lancements simultanés repose sur un verrou consultatif PostgreSQL, vérifié par lecture mais non exercé en vraie concurrence par la suite de tests | P3 | ⏳ |
-| AU-10 | **Reçu de paiement** (PDF) ; attestation / certificat de scolarité (le README les annonçait) | P1 | ⏳ |
+| AU-10 | **Reçus de paiement et attestations de scolarité (PDF)** : reçu numéroté par établissement (suite continue, sans trou, rattrapée pour les paiements existants), attestation figée à la délivrance (une par élève et par année, rejouable à l'identique, annulable par la Direction avec motif), **QR code + page publique de vérification** (`/verifier/<code>`, sans compte) qui affiche « authentique » ou « ANNULÉ ». Accès : comptable/direction (reçus), secrétariat/direction (attestations), parents pour leur(s) enfant(s). ✅ v26. Limites : voir AU-32 à AU-34 |
+| AU-32 | Reçus : pas de reçu « annulé » ni d'avoir/remboursement (un paiement saisi ne se supprime pas) ; le solde indiqué est celui **au moment de ce paiement** (calculé dans l'ordre des numéros de reçu) | P2 | ⏳ |
+| AU-33 | Attestation : texte unique non personnalisable, réservée aux élèves actifs affectés à une classe, année courante seulement ; pas de certificat de radiation / de transfert / de fréquentation, pas de signature ni cachet numérisés sur ces documents (espace laissé pour le cachet à la main) | P2 | ⏳ |
+| AU-34 | Vérification publique : limitée à 30 requêtes/minute/IP, en mémoire du processus (à passer sur Redis en multi-instance, voir PR). Le lien du QR dépend de `PUBLIC_APP_URL` : **à renseigner sur Railway** avec l'adresse réelle du site | P1 | ⏳ owner |
 | AU-11 | Exports (Excel/PDF) : listes de classe, présences, finances | P1 | ⏳ |
 | AU-12 | Emploi du temps : **modifier** un créneau (création/suppression seulement) ; conflits de salle ; impression | P1 | ⏳ |
 | AU-13 | Photo de l'élève ; cartes scolaires | P2 | ⏳ |
@@ -120,6 +123,21 @@
 | AU-30 | Passage d'année : ne rouvre pas automatiquement les affectations enseignants/emploi du temps (conservés, à revérifier), ne recrée pas de classes (la Direction crée « 4ème A » avant), ne propose pas de décision automatique de redoublement (suggestion = moyenne annuelle < 10/20, modifiable) ; la suggestion de classe d'accueil connaît les niveaux CI→Tle, pas la maternelle | P2 | ⏳ |
 | DM-01 | **Jeu de démonstration en ligne** : le script `backend/scripts/seed_demo.py` est prêt et testé (v21) mais **n'a pas été exécuté sur l'instance Railway** (action propriétaire : voir README). Tant qu'il ne l'est pas, l'instance en ligne n'a aucune école | P0 pour toute présentation | ⏳ action propriétaire |
 | AU-18 | Discipline : prévenir les parents d'un incident/sanction (dépend de PL-5 et CC-03) | P1 | ✅ v14 : lien « Informer les parents » depuis un incident, qui ouvre la messagerie préremplie (élève, objet, parents destinataires) — un acte volontaire du personnel, jamais un envoi automatique |
+
+## 5 ter. Différenciateurs compétitifs (CP) — ce qui fait choisir GESCOLA
+
+Constat de départ : un logiciel de gestion scolaire est jugé sur ce qu'il fait gagner en **argent encaissé**, en **temps du secrétariat** et en **confiance des parents**. Priorités ci-dessous, dans l'ordre où elles rapportent le plus, avec leur dépendance éventuelle.
+
+| # | Fonction | Pourquoi c'est différenciant | Statut |
+|---|---|---|---|
+| CP-00 | Reçus et attestations **vérifiables par QR code** | Les faux reçus sont un vrai problème ; peu de concurrents locaux offrent une vérification publique | ✅ v26 |
+| CP-01 | **Barème de frais par niveau + échéancier en tranches** (facturer « Scolarité T1/T2/T3 » d'un coup, remises fratrie) | Supprime la saisie manuelle de montants ; base des relances automatiques | ⏳ prochain |
+| CP-02 | **Paiement Mobile Money réel** (agrégateur type KkiaPay/FedaPay) : le parent paie depuis son téléphone, le reçu et la facture se mettent à jour seuls | Premier moyen de paiement au Bénin ; = CC-02 (dépend d'un contrat et de clés API) | ⏳ owner |
+| CP-03 | **SMS / WhatsApp** : relances d'impayés, absences, convocations | Les parents ne lisent pas les e-mails ; = CC-03 (dépend d'un fournisseur) | ⏳ owner |
+| CP-04 | **Exports Excel/PDF** (listes, présences, finances) | Exigé par toute direction et par les inspections ; = AU-11 | ⏳ |
+| CP-05 | **Application installable (PWA)** et mode dégradé pour connexion instable | Smartphone d'abord ; = CC-05 en version légère | ⏳ |
+| CP-06 | **Reprise des données depuis Educ Master / Excel** (import élèves déjà livré, à étendre aux notes et finances) | Lève le frein n°1 au changement d'outil | ⏳ |
+| CP-07 | **Alertes précoces** (décrochage : absences répétées + notes en baisse) pour la Direction | Valeur pédagogique visible dès la démo | ⏳ |
 
 ## 6. Production et sécurité (PR)
 
@@ -161,7 +179,7 @@
 3. ~~**PL-5 Messagerie** (MQ-08, puis AU-18)~~ — ✅ livré (v14).
 4. ~~**Appel en masse et correction après coup** (AU-04/05)~~ — ✅ livré (v20).
 4 bis. ~~**Socle élèves** : statut (AU-23), pagination/recherche des élèves (AU-08, partiel), import (AU-06)~~ — ✅ livré (v21).
-4 ter. ~~**Passage d'année** (AU-07)~~ — ✅ livré (v22) ; ~~années sur présences et factures (AU-28)~~ — ✅ livré (v23). ~~limite du plan (AU-24)~~ — ✅ livré (v24). ~~vue financière (AU-09)~~ — ✅ livré (v25). Prochain : reçus/attestations (AU-10), exports (AU-11).
+4 ter. ~~**Passage d'année** (AU-07)~~ — ✅ livré (v22) ; ~~années sur présences et factures (AU-28)~~ — ✅ livré (v23). ~~limite du plan (AU-24)~~ — ✅ livré (v24). ~~vue financière (AU-09)~~ — ✅ livré (v25) ; ~~reçus/attestations vérifiables (AU-10)~~ — ✅ livré (v26). Prochain : différenciateurs compétitifs (section 5 ter, d'abord barème de frais + échéancier CP-01 et exports AU-11).
 5. **Compléter la maquette** (MQ-02 à MQ-07) ; reçus/attestations/exports (AU-10/11).
 6. **Bulletins étendus** (BU-04 à BU-08).
 7. **Production** (PR-*, CC-02/03/04) avant le premier établissement réel.
@@ -182,12 +200,14 @@
 | DEF-11 | L'en-tête de total de pagination (`X-Total-Count`) n'aurait **pas été lisible par le navigateur** (CORS sans `expose_headers`) : le serveur l'aurait envoyé pour rien et les pages affichées « 0 élève ». Trouvé avant la livraison grâce à un test dédié | Haute (évitée) | v21 |
 | DEF-12 | **Année scolaire « flottante »** : un établissement qui n'avait jamais réglé son année voyait son année courante se déduire de la date du jour ; une fois les notes rattachées à une année, elle aurait basculé toute seule au 1ᵉʳ septembre et **fait disparaître les notes des écrans**. Repéré en concevant AU-07 ; évité en figeant l'année dès la 1ʳᵉ note et dans la migration | Haute (évitée) | v22 |
 | DEF-13 | **Encaissement sans garde-fou** : un paiement pouvait dépasser le solde (facture « payée » à 150 %), deux clics simultanés enregistraient deux fois la somme, et aucun paiement n'était tracé au journal d'audit. Repéré en concevant AU-09 ; corrigé : verrou de ligne, refus 409 si déjà soldée, 422 si > solde restant, entrée `payment.recorded` | **Haute** | v25 |
+| DEF-14 | **Limite de requêtes contournable** : avec la bibliothèque de limitation, le compteur d'une route à paramètre d'URL (`/public/verify/{code}`) est tenu **par URL complète** : un attaquant qui change de code à chaque essai n'était jamais freiné. Trouvé en testant la limite de la vérification publique ; corrigé par un compteur partagé (`shared_limit`). Les autres limites (connexion, messagerie) n'ont pas de paramètre d'URL et ne sont pas concernées | **Haute** (évitée avant mise en ligne) | v26 |
 | DEF-09 | **Aucune contrainte n'empêchait deux enregistrements de présence pour le même élève le même jour** — deux appels distincts, ou un double clic, créaient des lignes contradictoires. Corrigé par une contrainte d'unicité en base (`uq_attendance_student_date`) et un upsert systématique | Moyenne | v20 |
 
 ## 10. Historique des livraisons
 
 Voir le README (« Ce qui est inclus », Livraisons 1 à 11+) et `SECURITY.md`.
 
+- **v26** : reçus numérotés et attestations de scolarité en PDF, QR code et page publique de vérification, accès parents (AU-10) ; 323 tests ; section « différenciateurs compétitifs » (CP).
 - **v25** : vue financière globale (AU-09), facturation par classe, encaissements sécurisés (DEF-13) ; 308 tests.
 - **v24** : limite d'élèves du plan appliquée (AU-24) : création, réactivation, import ; verrou anti-concurrence, bandeaux et jauge ; 291 tests.
 - **v23** : factures et assiduité rattachées à l'année (AU-28), arriérés séparés dans les Rapports et la vue réseau, avertissement au passage d'année ; 278 tests.

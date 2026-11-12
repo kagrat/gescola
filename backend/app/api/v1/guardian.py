@@ -1,12 +1,14 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.core.deps import CurrentUser, get_tenant_db, require_roles
 from app.core.roles import CAN_MANAGE_GUARDIAN_LINKS
 from app.models.user import UserRole
-from app.schemas.finance import InvoiceOut
+from app.api.v1.documents import pdf_response
+from app.schemas.finance import CertificateOut, InvoiceOut, StudentPaymentRow
+from app.services import document_service as documents
 from app.schemas.grade import AttendanceOut, GradeOut, StudentAverageOut
 from app.schemas.guardian import ChildOut, GuardianLinkCreate, GuardianLinkOut
 from app.services.attendance_service import list_attendance
@@ -100,3 +102,41 @@ def child_invoices_endpoint(
 ) -> list[InvoiceOut]:
     _require_own_child(db, current_user, student_id)
     return list_invoices(db, tenant_id=current_user.tenant_id, student_id=student_id)
+
+
+@router.get("/children/{student_id}/payments", response_model=list[StudentPaymentRow])
+def child_payments_endpoint(
+    student_id: uuid.UUID, db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(UserRole.PARENT)),
+) -> list[dict]:
+    assert_parent_linked_to_student(db, tenant_id=current_user.tenant_id, parent_user_id=current_user.id, student_id=student_id)
+    return documents.list_student_payments(db, tenant_id=current_user.tenant_id, student_id=student_id)
+
+
+@router.get("/children/{student_id}/payments/{payment_id}/receipt")
+def child_receipt_endpoint(
+    student_id: uuid.UUID, payment_id: uuid.UUID, db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(UserRole.PARENT)),
+) -> Response:
+    assert_parent_linked_to_student(db, tenant_id=current_user.tenant_id, parent_user_id=current_user.id, student_id=student_id)
+    pdf, number = documents.render_receipt(db, tenant_id=current_user.tenant_id, payment_id=payment_id, student_id=student_id)
+    return pdf_response(pdf, f"recu-{number:06d}.pdf")
+
+
+@router.get("/children/{student_id}/certificates", response_model=list[CertificateOut])
+def child_certificates_endpoint(
+    student_id: uuid.UUID, db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(UserRole.PARENT)),
+):
+    assert_parent_linked_to_student(db, tenant_id=current_user.tenant_id, parent_user_id=current_user.id, student_id=student_id)
+    return documents.list_certificates(db, tenant_id=current_user.tenant_id, student_id=student_id)
+
+
+@router.get("/children/{student_id}/certificates/{certificate_id}/pdf")
+def child_certificate_pdf_endpoint(
+    student_id: uuid.UUID, certificate_id: uuid.UUID, db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(UserRole.PARENT)),
+) -> Response:
+    assert_parent_linked_to_student(db, tenant_id=current_user.tenant_id, parent_user_id=current_user.id, student_id=student_id)
+    pdf, number = documents.render_certificate(db, tenant_id=current_user.tenant_id, certificate_id=certificate_id, student_id=student_id)
+    return pdf_response(pdf, f"attestation-{number:06d}.pdf")

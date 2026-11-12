@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, ForeignKey, String, Text
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -42,6 +42,11 @@ class Tenant(Base, TimestampMixin):
     ifu: Mapped[str | None] = mapped_column(String(50), nullable=True)
     address: Mapped[str | None] = mapped_column(String(300), nullable=True)
     logo_base64: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Compteurs de numérotation des documents (reçus, attestations) : incrémentés
+    # atomiquement (UPDATE ... RETURNING), donc sans doublon même en concurrence.
+    receipt_counter: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    certificate_counter: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
 
     # --- Réglages du bulletin (voir bulletin_service / bulletin_pdf) ---
     academic_year: Mapped[str | None] = mapped_column(String(9), nullable=True)  # ex: "2026-2027"

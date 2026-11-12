@@ -30,6 +30,7 @@ import TimetablePage from "./pages/TimetablePage";
 import MyTimetablePage from "./pages/MyTimetablePage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import RequireRole from "./components/RequireRole";
+import VerifyDocumentPage from "./pages/VerifyDocumentPage";
 import FinancePage from "./pages/FinancePage";
 import { CAN_CLOSE_YEAR, CAN_MANAGE_REGISTRY } from "./lib/permissions";
 import MessagesPage from "./pages/MessagesPage";
@@ -54,6 +55,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/connexion" element={<LoginPage />} />
+          <Route path="/verifier/:code" element={<VerifyDocumentPage />} />
           <Route path="/inscription" element={<SignupPage />} />
           <Route path="/mot-de-passe" element={<RequireAuth><ChangePasswordPage /></RequireAuth>} />
           <Route

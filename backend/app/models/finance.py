@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import date
 
-from sqlalchemy import Index, Date, Enum, ForeignKey, Numeric, String
+from sqlalchemy import Index, Date, Enum, ForeignKey, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -46,6 +46,7 @@ class Invoice(Base, TenantScopedMixin, TimestampMixin):
 
 class Payment(Base, TenantScopedMixin, TimestampMixin):
     __tablename__ = "payments"
+    __table_args__ = (UniqueConstraint("tenant_id", "receipt_number", name="uq_payment_receipt_number"),)
 
     id: Mapped[uuid.UUID] = uuid_pk()
     invoice_id: Mapped[uuid.UUID] = mapped_column(
@@ -56,5 +57,7 @@ class Payment(Base, TenantScopedMixin, TimestampMixin):
         Enum(PaymentMethod, name="payment_method", values_callable=lambda x: [e.value for e in x]), nullable=False
     )
     reference: Mapped[str | None] = mapped_column(String(100), nullable=True)  # ex: réf. transaction mobile money
+    # Numéro de reçu : suite continue par établissement (jamais réutilisée, sans trou en usage normal).
+    receipt_number: Mapped[int] = mapped_column(Integer, nullable=False)
 
     invoice: Mapped["Invoice"] = relationship(back_populates="payments")

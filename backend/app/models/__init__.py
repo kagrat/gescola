@@ -23,3 +23,4 @@ from app.models.refresh_token import RefreshToken  # noqa: F401
 from app.models.student import Student, StudentStatus  # noqa: F401
 from app.models.tenant import Tenant  # noqa: F401
 from app.models.user import User, UserRole  # noqa: F401
+from app.models.documents import Certificate, DocumentVerification  # noqa: F401

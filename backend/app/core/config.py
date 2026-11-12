@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     # --- Politique de mot de passe ---
     PASSWORD_MIN_LENGTH: int = 10
 
+    # Adresse publique du site (frontend) : sert à construire le lien du QR code de vérification des documents.
+    PUBLIC_APP_URL: str = "https://gescola-self.vercel.app"
+
+    # Vérification publique des documents (QR code) : limite par adresse IP, contre l'énumération de codes.
+    PUBLIC_VERIFY_RATE_LIMIT: str = "30/minute"
+
     # --- CORS ---
     CORS_ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]
 
