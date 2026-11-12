@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from app.models.student import Student, StudentStatus
 from app.services.academic_service import get_student_or_404
 from app.services.audit_service import log_action
+from app.services.quota_service import assert_can_add
 
 MAX_PAGE_SIZE = 500
 DEFAULT_PAGE_SIZE = 100
@@ -95,6 +96,8 @@ def change_student_status(
     if student.status == new_status:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="L'élève a déjà ce statut.")
 
+    if new_status == StudentStatus.ACTIVE:
+        assert_can_add(db, tenant_id=tenant_id)  # réactiver un élève reprend une place du plan
     old_status = student.status
     student.status = new_status
     # La classe est conservée volontairement : elle documente d'où vient l'élève

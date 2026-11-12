@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.academic import SchoolClass, Subject
 from app.models.student import Student
 from app.models.user import User, UserRole
+from app.services.quota_service import assert_can_add
 from app.schemas.academic import SchoolClassCreate, SchoolClassUpdate, StudentCreate, StudentUpdate, SubjectCreate, SubjectUpdate
 
 
@@ -61,6 +62,7 @@ def _get_class_or_404(db: Session, *, tenant_id: uuid.UUID, class_id: uuid.UUID)
 def create_student(db: Session, *, tenant_id: uuid.UUID, data: StudentCreate) -> Student:
     if data.class_id is not None:
         _get_class_or_404(db, tenant_id=tenant_id, class_id=data.class_id)  # empêche le rattachement inter-tenant
+    assert_can_add(db, tenant_id=tenant_id)  # limite du plan (verrou jusqu'au commit ci-dessous)
 
     obj = Student(
         tenant_id=tenant_id,

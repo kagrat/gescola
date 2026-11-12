@@ -2,6 +2,7 @@ import { useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import { Download, FileSpreadsheet, CheckCircle2, AlertTriangle } from "lucide-react";
 import { api, ApiError } from "../lib/api";
+import QuotaNotice from "../components/QuotaNotice";
 
 interface Issue {
   row: number;
@@ -84,6 +85,7 @@ export default function StudentImportPage() {
         <p className="text-[12.5px] text-ink/60 mt-0.5">Depuis un fichier Excel (.xlsx) ou CSV — jusqu'à 2 000 élèves à la fois.</p>
       </div>
 
+      <QuotaNotice always refreshKey={done} />
       <div className="px-10 py-8 max-w-4xl space-y-6">
         <section className="border border-line rounded-lg bg-white p-5 text-[13.5px] text-ink/80 space-y-2">
           <p><b className="text-ink">1.</b> Téléchargez le modèle et remplissez-le (une ligne par élève). Colonnes obligatoires : <b>Nom</b> et <b>Prénom</b>.</p>

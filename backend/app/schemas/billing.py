@@ -13,6 +13,13 @@ class PlatformPlanCreate(BaseModel):
     max_students: int | None = None
     is_default_trial_plan: bool = False
 
+    @field_validator("max_students")
+    @classmethod
+    def at_least_one(cls, v: int | None) -> int | None:
+        if v is not None and v < 1:
+            raise ValueError("La limite d'élèves doit être d'au moins 1 (laissez vide pour illimité).")
+        return v
+
     @field_validator("price_per_month")
     @classmethod
     def non_negative(cls, v: float) -> float:

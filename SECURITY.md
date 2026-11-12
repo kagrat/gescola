@@ -71,6 +71,7 @@
 | Aucun secret en dur ; refus de démarrer en production avec la clé JWT par défaut | `app/main.py` | — |
 | Pas de fuite de stack trace au client (exception handler générique + logging serveur) | `app/main.py` | — |
 | Utilisateur non-root dans le conteneur Docker | `Dockerfile` | — |
+| Limite d'élèves du plan : contrôle à la création, réactivation et import, sous verrou d'établissement (pas de dépassement par requêtes simultanées) ; accès au quota réservé au personnel du référentiel | `app/services/quota_service.py` | `test_student_quota.py` |
 | Factures et présences bornées à l'année scolaire dans les rapports ; table `invoices` sous RLS avec rattrapage tenant par tenant à la migration | `finance_service.finance_totals`, `reporting_service.py`, migration `d3f7a19c5e60` | `test_year_scoping.py` |
 | Passage d'année : réservé Direction/Fondateur ; verrou d'établissement + revérification de l'année sous verrou (pas de double passage) ; plan validé avant toute écriture, classes et élèves limités à l'établissement ; historique par élève sous RLS | `app/services/rollover_service.py`, `app/api/v1/academic_year.py` | `test_academic_year_rollover.py` |
 | Notes d'une année close : correction réservée à la Direction, journal `grade.override_closed_year` ; année non modifiable à la main une fois des notes saisies | `grade_service.py`, `establishment_service.py` | `test_academic_year_rollover.py::test_grade_of_a_closed_year…`, `::test_year_cannot_be_changed_by_hand…` |

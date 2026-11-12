@@ -110,7 +110,7 @@
 | AU-20 | Politique de mot de passe renforcée : expiration/historique, refus des mots de passe courants ou déjà compromis | P2 | ⏳ |
 | AU-21 | Prévenir la personne par e-mail d'un changement ou d'une réinitialisation de son mot de passe (alerte de sécurité) | P1 | ⏳ (dépend de CC-03) |
 | AU-22 | Import en masse des comptes du personnel (CSV) — même besoin que l'import d'élèves (AU-06) | P1 | ⏳ |
-| AU-24 | **La limite d'élèves du plan d'abonnement (`max_students`) n'est appliquée nulle part** (vérifié : elle existe sur le plan, mais ni la création ni l'import d'élèves ne la contrôlent) — un établissement en essai gratuit (100 élèves) peut en inscrire sans limite | **P0** pour la facturation réelle | ⏳ |
+| AU-24 | **Limite d'élèves du plan d'abonnement** : appliquée à la création, à la **réactivation** d'un élève et à l'**import** (aperçu et exécution), sous verrou d'établissement (8 inscriptions simultanées pour 3 places : 3 réussissent). Compte les élèves **actifs** : diplômés/transférés/archivés libèrent une place (le passage d'année libère les terminales). Refus 402 avec les chiffres ; pas d'abonnement ou plan sans limite = pas de limite ; un plan à moins de 1 élève est refusé. Bandeau d'alerte (≥ 90 % et à la limite) sur Élèves et Import, jauge sur « Mon abonnement ». `GET /students/quota` ✅ v24. Limites : réduire un plan sous l'effectif ne retire personne (seules les nouvelles inscriptions sont bloquées) ; aucune alerte e-mail à l'éditeur ; le Super Admin n'est pas prévenu d'un dépassement |
 | AU-25 | Recherche d'élèves sensible aux accents (« Aicha » ne trouve pas « Aïcha ») : nécessite l'extension PostgreSQL `unaccent` ou une colonne normalisée | P2 | ⏳ |
 | AU-26 | Les écrans de sélection (cantine, bibliothèque, discipline, messages, mes classes, personnel) chargent *tous* les élèves par blocs de 500 : correct mais lourd au-delà de ~2 000 élèves. À remplacer par une recherche à la volée | P1 | ⏳ |
 | AU-27 | Import : ne crée pas les classes manquantes (volontaire), ne crée pas les comptes parents à partir des colonnes tuteur, n'importe pas le personnel (voir AU-22), n'accepte que la 1ʳᵉ feuille d'un classeur Excel | P2 | ⏳ |
@@ -160,7 +160,7 @@
 3. ~~**PL-5 Messagerie** (MQ-08, puis AU-18)~~ — ✅ livré (v14).
 4. ~~**Appel en masse et correction après coup** (AU-04/05)~~ — ✅ livré (v20).
 4 bis. ~~**Socle élèves** : statut (AU-23), pagination/recherche des élèves (AU-08, partiel), import (AU-06)~~ — ✅ livré (v21).
-4 ter. ~~**Passage d'année** (AU-07)~~ — ✅ livré (v22) ; ~~années sur présences et factures (AU-28)~~ — ✅ livré (v23). Prochain : limite du plan (AU-24), vue financière (AU-09), reçus/attestations (AU-10).
+4 ter. ~~**Passage d'année** (AU-07)~~ — ✅ livré (v22) ; ~~années sur présences et factures (AU-28)~~ — ✅ livré (v23). ~~limite du plan (AU-24)~~ — ✅ livré (v24). Prochain : vue financière (AU-09), reçus/attestations (AU-10), exports (AU-11).
 5. **Compléter la maquette** (MQ-02 à MQ-07) ; reçus/attestations/exports (AU-10/11).
 6. **Bulletins étendus** (BU-04 à BU-08).
 7. **Production** (PR-*, CC-02/03/04) avant le premier établissement réel.
@@ -186,6 +186,7 @@
 
 Voir le README (« Ce qui est inclus », Livraisons 1 à 11+) et `SECURITY.md`.
 
+- **v24** : limite d'élèves du plan appliquée (AU-24) : création, réactivation, import ; verrou anti-concurrence, bandeaux et jauge ; 291 tests.
 - **v23** : factures et assiduité rattachées à l'année (AU-28), arriérés séparés dans les Rapports et la vue réseau, avertissement au passage d'année ; 278 tests.
 - **v22** : passage d'année scolaire (AU-07) : notes rattachées à leur année, clôture/promotion/redoublement/sortie, historique des parcours, 272 tests ; limites AU-28 à AU-30.
 - **v21** : statut d'élève contrôlé (AU-23), pagination et recherche des élèves (AU-08 partiel), import CSV/Excel (AU-06), script de démonstration (DM-01), DEF-10, DEF-11. 257 tests.

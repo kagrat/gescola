@@ -4,6 +4,7 @@ import { Search, Plus, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import Avatar from "../components/Avatar";
 import StatusPill from "../components/StatusPill";
+import QuotaNotice from "../components/QuotaNotice";
 import { useAuth } from "../auth/AuthContext";
 import { CAN_MANAGE_REGISTRY, roleCan } from "../lib/permissions";
 
@@ -148,6 +149,7 @@ export default function StudentsPage() {
           )}
         </div>
       </div>
+      {canManage && <QuotaNotice refreshKey={total} />}
 
       <div className="px-10 pt-6 flex flex-wrap items-center gap-3 text-[13.5px]">
         <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} aria-label="Filtrer par classe"

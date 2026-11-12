@@ -38,6 +38,7 @@ from app.models.academic import SchoolClass
 from app.models.audit import AuditLog
 from app.models.student import Student, StudentGender
 from app.services.audit_service import log_action
+from app.services.quota_service import assert_can_add
 
 MAX_FILE_BYTES = 2 * 1024 * 1024
 MAX_ROWS = 2000
@@ -427,6 +428,11 @@ def process_import(
                 "row": number, "last_name": student.last_name, "first_name": student.first_name,
                 "class": class_label or None, "matricule": student.matricule,
             })
+
+    # Limite du plan : seulement si le fichier est par ailleurs valide (les erreurs de lignes passent d'abord).
+    # À l'aperçu on contrôle sans verrou ; à l'import, sous verrou, jusqu'au commit.
+    if not report.error_count and to_insert:
+        assert_can_add(db, tenant_id=tenant_id, count=len(to_insert), lock=commit)
 
     imported = 0
     if commit:

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../lib/api";
 import RequireRole from "../components/RequireRole";
+import { useQuota } from "../components/QuotaNotice";
 import { CAN_VIEW_SCHOOL_SUBSCRIPTION } from "../lib/permissions";
 
 interface Plan { name: string; price_per_month: number; max_students: number | null; }
@@ -38,6 +39,7 @@ function SchoolSubscriptionPageContent() {
   const [sub, setSub] = useState<Subscription | null | undefined>(undefined);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [founderExclusive, setFounderExclusive] = useState(false);
+  const quota = useQuota();
 
   useEffect(() => {
     api
@@ -91,6 +93,21 @@ function SchoolSubscriptionPageContent() {
                 </span>
               )}
             </div>
+
+            {quota && (
+              <div className="mt-4" aria-label="Utilisation du plan">
+                <p className="text-sm text-ink/70">
+                  Élèves actifs : <b className="text-ink">{quota.active_students.toLocaleString("fr-FR")}</b>
+                  {quota.max_students !== null ? ` sur ${quota.max_students.toLocaleString("fr-FR")} autorisés` : " (nombre illimité)"}
+                </p>
+                {quota.max_students !== null && (
+                  <div className="mt-1.5 h-2 rounded-full bg-ink/10 overflow-hidden">
+                    <div className={`h-full ${quota.active_students >= quota.max_students ? "bg-brick" : quota.active_students >= quota.max_students * 0.9 ? "bg-ochre" : "bg-pass"}`}
+                      style={{ width: `${Math.min(100, Math.round((100 * quota.active_students) / quota.max_students))}%` }} />
+                  </div>
+                )}
+              </div>
+            )}
 
             {sub.effective_status === "trialing" && trialDays !== null && (
               <p className={`mt-4 text-sm ${trialDays <= 3 ? "text-brick font-medium" : "text-ink/60"}`}>

@@ -14,6 +14,7 @@ from app.services.academic_service import (
     create_class, create_student, create_subject, get_student_or_404, list_classes, list_subjects,
     update_class, update_student, update_subject,
 )
+from app.services.quota_service import student_quota
 from app.services.student_import_service import MAX_FILE_BYTES, process_import, template_csv
 from app.services.student_service import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, change_student_status, search_students
 
@@ -125,6 +126,15 @@ def change_student_status_endpoint(
         db, tenant_id=current_user.tenant_id, actor_id=current_user.id, student_id=student_id,
         new_status=payload.status, reason=payload.reason,
     )
+
+
+@router.get("/students/quota")
+def student_quota_endpoint(
+    db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(*CAN_READ_REGISTRY)),
+) -> dict:
+    """Places utilisées / autorisées par le plan d'abonnement (max_students vide = illimité)."""
+    return student_quota(db, tenant_id=current_user.tenant_id)
 
 
 @router.get("/students/import/template")
