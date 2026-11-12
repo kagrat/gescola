@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.finance import Invoice, InvoiceStatus, Payment
 from app.schemas.finance import InvoiceCreate, InvoiceOut, PaymentCreate
 from app.services.academic_service import get_student_or_404
+from app.services.audit_service import log_action
 from app.services.academic_year_service import ensure_academic_year, is_valid_year, next_year
 
 
@@ -48,14 +49,29 @@ def list_invoices(db: Session, *, tenant_id: uuid.UUID, student_id: uuid.UUID) -
     return [_to_out(inv) for inv in invoices]
 
 
-def record_payment(db: Session, *, tenant_id: uuid.UUID, data: PaymentCreate) -> Payment:
+def record_payment(
+    db: Session, *, tenant_id: uuid.UUID, data: PaymentCreate, actor_id: uuid.UUID | None = None,
+) -> Payment:
     invoice = db.execute(
-        select(Invoice).where(Invoice.id == data.invoice_id, Invoice.tenant_id == tenant_id)
+        # Verrou de ligne : deux encaissements simultanés (double clic, deux caisses)
+        # sont traités l'un après l'autre et voient chacun le solde à jour.
+        select(Invoice).where(Invoice.id == data.invoice_id, Invoice.tenant_id == tenant_id).with_for_update()
     ).scalar_one_or_none()
     if invoice is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Facture introuvable.")
     if invoice.status == InvoiceStatus.CANCELLED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cette facture est annulée.")
+    already_paid = sum(float(p.amount) for p in invoice.payments)
+    balance = round(float(invoice.amount_due) - already_paid, 2)
+    if balance <= 0:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cette facture est déjà soldée.")
+    if round(data.amount, 2) > balance:
+        db.rollback()
+        raise HTTPException(
+            status_code=422,
+            detail=f"Le montant ({data.amount:,.0f} F) dépasse le solde restant dû ({balance:,.0f} F).".replace(",", " "),
+        )
 
     payment = Payment(
         tenant_id=tenant_id, invoice_id=invoice.id, amount=data.amount,
@@ -71,6 +87,12 @@ def record_payment(db: Session, *, tenant_id: uuid.UUID, data: PaymentCreate) ->
     elif total_paid > 0:
         invoice.status = InvoiceStatus.PARTIALLY_PAID
 
+    log_action(
+        db, tenant_id=tenant_id, actor_user_id=actor_id, action="payment.recorded", target_type="Invoice",
+        target_id=str(invoice.id),
+        metadata={"amount": float(data.amount), "method": data.method.value, "reference": data.reference,
+                  "student_id": str(invoice.student_id), "balance_after": round(balance - float(data.amount), 2)},
+    )
     db.commit()
     db.refresh(payment)
     return payment

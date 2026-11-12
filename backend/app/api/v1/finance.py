@@ -1,11 +1,18 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from datetime import date
+
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.core.deps import CurrentUser, get_tenant_db, require_roles
 from app.core.roles import CAN_MANAGE_FINANCE
-from app.schemas.finance import InvoiceCreate, InvoiceOut, PaymentCreate, PaymentOut
+from app.schemas.finance import (
+    BulkInvoiceReport, BulkInvoiceRequest, FinanceSummary, InvoiceCreate, InvoiceOut, InvoiceRow, PaymentCreate, PaymentOut,
+)
+from app.services.finance_overview_service import (
+    DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, bulk_invoice_class, finance_summary, list_invoice_rows,
+)
 from app.services.finance_service import create_invoice, list_invoices, record_payment
 from app.services.notification_service import send_invoice_reminder
 
@@ -41,7 +48,7 @@ def record_payment_endpoint(
     db: Session = Depends(get_tenant_db),
     current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_FINANCE)),
 ) -> PaymentOut:
-    return record_payment(db, tenant_id=current_user.tenant_id, data=payload)
+    return record_payment(db, tenant_id=current_user.tenant_id, data=payload, actor_id=current_user.id)
 
 
 @router.post("/invoices/{invoice_id}/remind")
@@ -52,3 +59,46 @@ def remind_invoice_endpoint(
 ) -> dict:
     count = send_invoice_reminder(db, tenant_id=current_user.tenant_id, invoice_id=invoice_id, actor_id=current_user.id)
     return {"notified": count}
+
+
+@router.get("/finance/invoices", response_model=list[InvoiceRow])
+def finance_invoices_endpoint(
+    response: Response,
+    q: str | None = Query(default=None, max_length=100, description="Élève, matricule ou libellé"),
+    class_id: uuid.UUID | None = None,
+    academic_year: str | None = Query(default=None, pattern=r"^\d{4}-\d{4}$"),
+    state: str | None = Query(default=None, description="unpaid | overdue | partially_paid | pending | paid | cancelled"),
+    sort: str = Query(default="due", pattern="^(due|balance)$"),
+    limit: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_FINANCE)),
+) -> list[dict]:
+    """Toutes les factures de l'établissement, paginées ; total dans X-Total-Count."""
+    rows, total = list_invoice_rows(
+        db, tenant_id=current_user.tenant_id, q=q, class_id=class_id, academic_year=academic_year,
+        state=state, sort=sort, limit=limit, offset=offset,
+    )
+    response.headers["X-Total-Count"] = str(total)
+    return rows
+
+
+@router.get("/finance/summary", response_model=FinanceSummary)
+def finance_summary_endpoint(
+    academic_year: str | None = Query(default=None, pattern=r"^\d{4}-\d{4}$"),
+    db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_FINANCE)),
+) -> dict:
+    return finance_summary(db, tenant_id=current_user.tenant_id, academic_year=academic_year)
+
+
+@router.post("/finance/bulk-invoices", response_model=BulkInvoiceReport)
+def bulk_invoices_endpoint(
+    payload: BulkInvoiceRequest,
+    dry_run: bool = Query(default=True, description="true = aperçu sans rien créer (défaut)"),
+    db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_FINANCE)),
+) -> BulkInvoiceReport:
+    return bulk_invoice_class(
+        db, tenant_id=current_user.tenant_id, actor_id=current_user.id, data=payload, commit=not dry_run,
+    )

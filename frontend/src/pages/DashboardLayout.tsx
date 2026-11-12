@@ -134,6 +134,7 @@ function navItemsFor(role: string) {
     items.push({ to: "/bibliotheque", label: "Bibliothèque", icon: LibraryIcon });
   }
   if (["school_admin", "accountant", "founder"].includes(role)) {
+    items.push({ to: "/finances", label: "Finances", icon: Wallet });
     items.push({ to: "/cantine", label: "Cantine", icon: UtensilsCrossed });
   }
   if (["school_admin", "founder"].includes(role)) {
