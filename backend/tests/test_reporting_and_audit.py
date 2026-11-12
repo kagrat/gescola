@@ -1,4 +1,9 @@
+from datetime import date
+
 from app.models.user import UserRole
+from app.services.academic_year_service import default_academic_year
+
+Y0 = default_academic_year(date.today())[:4]  # l'assiduité est bornée à l'année scolaire en cours
 
 
 def test_overview_report_aggregates_finance_attendance_and_grades(client, make_tenant, make_user, auth_headers):
@@ -17,11 +22,11 @@ def test_overview_report_aggregates_finance_attendance_and_grades(client, make_t
         json={"student_id": student["id"], "subject_id": subject["id"], "term": "T1", "evaluation_label": "D1", "value": 16},
         headers=headers,
     )
-    client.post("/api/v1/attendance", json={"student_id": student["id"], "date": "2026-10-05", "status": "present"}, headers=headers)
-    client.post("/api/v1/attendance", json={"student_id": student["id"], "date": "2026-10-06", "status": "absent", "justified": False}, headers=headers)
+    client.post("/api/v1/attendance", json={"student_id": student["id"], "date": f"{Y0}-10-05", "status": "present"}, headers=headers)
+    client.post("/api/v1/attendance", json={"student_id": student["id"], "date": f"{Y0}-10-06", "status": "absent", "justified": False}, headers=headers)
     invoice = client.post(
         "/api/v1/invoices",
-        json={"student_id": student["id"], "label": "Scolarité", "amount_due": 30000, "due_date": "2026-10-01"},
+        json={"student_id": student["id"], "label": "Scolarité", "amount_due": 30000, "due_date": f"{Y0}-10-01"},
         headers=headers,
     ).json()
     client.post("/api/v1/payments", json={"invoice_id": invoice["id"], "amount": 10000, "method": "cash"}, headers=headers)

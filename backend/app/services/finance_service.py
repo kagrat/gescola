@@ -1,18 +1,28 @@
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.finance import Invoice, InvoiceStatus, Payment
 from app.schemas.finance import InvoiceCreate, InvoiceOut, PaymentCreate
 from app.services.academic_service import get_student_or_404
+from app.services.academic_year_service import ensure_academic_year, is_valid_year, next_year
 
 
 def create_invoice(db: Session, *, tenant_id: uuid.UUID, data: InvoiceCreate) -> Invoice:
     get_student_or_404(db, tenant_id=tenant_id, student_id=data.student_id)
+    current = ensure_academic_year(db, tenant_id)
+    year = data.academic_year or current
+    # Année en cours ou suivante (réinscriptions facturées avant la rentrée), ou
+    # une année passée (régularisation) ; jamais une année lointaine par faute de frappe.
+    if not is_valid_year(year) or year > next_year(current):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Année scolaire invalide pour une facture (au plus {next_year(current)}).",
+        )
     obj = Invoice(
-        tenant_id=tenant_id, student_id=data.student_id, label=data.label,
+        tenant_id=tenant_id, student_id=data.student_id, label=data.label, academic_year=year,
         amount_due=data.amount_due, due_date=data.due_date,
     )
     db.add(obj)
@@ -24,7 +34,7 @@ def create_invoice(db: Session, *, tenant_id: uuid.UUID, data: InvoiceCreate) ->
 def _to_out(invoice: Invoice) -> InvoiceOut:
     paid = sum(float(p.amount) for p in invoice.payments)
     return InvoiceOut(
-        id=invoice.id, student_id=invoice.student_id, label=invoice.label,
+        id=invoice.id, student_id=invoice.student_id, label=invoice.label, academic_year=invoice.academic_year,
         amount_due=float(invoice.amount_due), due_date=invoice.due_date, status=invoice.status,
         amount_paid=paid, balance=round(float(invoice.amount_due) - paid, 2),
     )
@@ -64,3 +74,35 @@ def record_payment(db: Session, *, tenant_id: uuid.UUID, data: PaymentCreate) ->
     db.commit()
     db.refresh(payment)
     return payment
+
+
+def finance_totals(db: Session, *, tenant_id: uuid.UUID, year: str) -> dict:
+    """Indicateurs financiers d'un établissement pour son année en cours.
+
+    * dû / encaissé / reste : factures de l'année en cours uniquement (les
+      factures de l'année suivante, facturées d'avance, n'en font pas partie) ;
+    * arriérés : solde restant sur les factures des années PRÉCÉDENTES, séparé
+      pour ne pas fausser le taux de recouvrement de l'année tout en restant
+      visible.
+    Les factures annulées sont exclues partout. Source unique pour le tableau
+    de bord de l'établissement et la vue consolidée du réseau."""
+
+    def due_and_paid(year_filter) -> tuple[float, float]:
+        due = db.execute(
+            select(func.coalesce(func.sum(Invoice.amount_due), 0)).where(
+                Invoice.tenant_id == tenant_id, Invoice.status != InvoiceStatus.CANCELLED, year_filter
+            )
+        ).scalar_one()
+        paid = db.execute(
+            select(func.coalesce(func.sum(Payment.amount), 0)).join(Invoice, Payment.invoice_id == Invoice.id).where(
+                Payment.tenant_id == tenant_id, Invoice.status != InvoiceStatus.CANCELLED, year_filter
+            )
+        ).scalar_one()
+        return float(due), float(paid)
+
+    due, paid = due_and_paid(Invoice.academic_year == year)
+    prev_due, prev_paid = due_and_paid(Invoice.academic_year < year)
+    return {
+        "due": due, "paid": paid, "outstanding": due - paid,
+        "previous_years_outstanding": round(prev_due - prev_paid, 2),
+    }

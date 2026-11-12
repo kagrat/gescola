@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Enum, ForeignKey, UniqueConstraint
+from sqlalchemy import Boolean, Date, Enum, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,4 +33,5 @@ class Attendance(Base, TenantScopedMixin, TimestampMixin):
         # Un seul enregistrement par élève et par jour — l'appel se corrige (PATCH),
         # il ne se dédouble jamais. Voir attendance_service.create_attendance (upsert).
         UniqueConstraint("tenant_id", "student_id", "date", name="uq_attendance_student_date"),
+        Index("ix_attendances_tenant_date", "tenant_id", "date"),
     )

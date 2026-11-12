@@ -40,6 +40,7 @@ from app.models.tenant import Tenant
 from app.schemas.rollover import RolloverReport, RolloverRequest
 from app.services.academic_year_service import current_year, ensure_academic_year, is_valid_year, next_year
 from app.services.audit_service import log_action
+from app.services.finance_service import finance_totals
 from app.services.results_service import compute_class_term_results
 
 TERMS = ("T1", "T2", "T3")
@@ -240,6 +241,12 @@ def _build_plan(db: Session, *, tenant_id: uuid.UUID, req: RolloverRequest, year
     if drafts:
         plan.warnings.append(
             f"{drafts} bulletin(s) de {year} sont encore en brouillon : ils ne seront plus régénérables après le passage d'année."
+        )
+    owed = finance_totals(db, tenant_id=tenant_id, year=year)["outstanding"]
+    if owed > 0:
+        plan.warnings.append(
+            f"{owed:,.0f} F restent dus sur les factures de {year} : ils deviendront des « arriérés » "
+            "(toujours encaissables, suivis séparément dans les Rapports).".replace(",", " ")
         )
     targets: dict[uuid.UUID, list[str]] = defaultdict(list)
     for cid, move in plan.moves.items():

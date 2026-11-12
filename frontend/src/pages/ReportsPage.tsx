@@ -5,8 +5,9 @@ import RequireRole from "../components/RequireRole";
 import { CAN_VIEW_REPORTS } from "../lib/permissions";
 
 interface OverviewReport {
+  academic_year: string;
   total_active_students: number;
-  finance: { amount_due_total: number; amount_paid_total: number; outstanding_total: number };
+  finance: { amount_due_total: number; amount_paid_total: number; outstanding_total: number; previous_years_outstanding: number };
   attendance: { records_count: number; unjustified_absences: number; attendance_rate_percent: number | null };
   average_by_class: Record<string, number>;
 }
@@ -67,13 +68,21 @@ function ReportsPageContent() {
           <div className="grid sm:grid-cols-4 gap-4 mt-8">
             <Stat label="Élèves actifs" value={String(report.total_active_students)} accent="navy" />
             <Stat label="Encaissé" value={`${report.finance.amount_paid_total.toLocaleString("fr-FR")} F`} accent="pass" />
-            <Stat label="Restant dû" value={`${report.finance.outstanding_total.toLocaleString("fr-FR")} F`} accent="brick" />
+            <Stat label={`Restant dû ${report.academic_year}`} value={`${report.finance.outstanding_total.toLocaleString("fr-FR")} F`} accent="brick" />
             <Stat
               label="Taux de présence"
               value={report.attendance.attendance_rate_percent !== null ? `${report.attendance.attendance_rate_percent}%` : "—"}
               accent="ochre"
             />
           </div>
+
+          {report.finance.previous_years_outstanding > 0 && (
+            <p className="mt-4 text-[13.5px] text-ink/80 border border-brick/30 bg-brick/5 rounded px-4 py-3">
+              <b className="text-brick">Arriérés des années précédentes : {report.finance.previous_years_outstanding.toLocaleString("fr-FR")} F</b>
+              {" "}— factures antérieures à {report.academic_year} encore impayées, suivies à part pour ne pas fausser le recouvrement de l'année.
+            </p>
+          )}
+          <p className="mt-3 text-[12px] text-ink/40">Finances et présences : année scolaire {report.academic_year}.</p>
 
           <div className="grid lg:grid-cols-2 gap-6 mt-8">
             <div className="border border-line rounded bg-white p-5">

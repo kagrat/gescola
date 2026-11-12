@@ -9,7 +9,8 @@ from app.models.academic import SchoolClass
 from app.models.finance import Invoice, InvoiceStatus, Payment
 from app.models.grade import Grade
 from app.models.student import Student, StudentStatus
-from app.services.academic_year_service import current_year
+from app.services.academic_year_service import current_year, year_end_exclusive, year_start
+from app.services.finance_service import finance_totals
 
 
 def overview_report(db: Session, *, tenant_id: uuid.UUID, term: str | None = None) -> dict:
@@ -22,21 +23,16 @@ def overview_report(db: Session, *, tenant_id: uuid.UUID, term: str | None = Non
         select(func.count()).select_from(Student).where(Student.tenant_id == tenant_id, Student.status == StudentStatus.ACTIVE)
     ).scalar_one()
 
-    # --- Finances : encaissé vs. dû sur les factures non annulées ---
-    amount_due_total = db.execute(
-        select(func.coalesce(func.sum(Invoice.amount_due), 0)).where(
-            Invoice.tenant_id == tenant_id, Invoice.status != InvoiceStatus.CANCELLED
-        )
-    ).scalar_one()
-    amount_paid_total = db.execute(
-        select(func.coalesce(func.sum(Payment.amount), 0))
-        .join(Invoice, Payment.invoice_id == Invoice.id)
-        .where(Payment.tenant_id == tenant_id, Invoice.status != InvoiceStatus.CANCELLED)
-    ).scalar_one()
+    year = current_year(db, tenant_id)
+    # --- Finances de l'année en cours + arriérés des années précédentes ---
+    fin = finance_totals(db, tenant_id=tenant_id, year=year)
 
     # --- Présences : taux d'absentéisme non justifié sur les 30 derniers jours enregistrés ---
     attendance_rows = db.execute(
-        select(Attendance.status, Attendance.justified).where(Attendance.tenant_id == tenant_id)
+        select(Attendance.status, Attendance.justified).where(
+            Attendance.tenant_id == tenant_id,
+            Attendance.date >= year_start(year), Attendance.date < year_end_exclusive(year),
+        )
     ).all()
     total_attendance = len(attendance_rows)
     unjustified_absences = sum(1 for status, justified in attendance_rows if status == AttendanceStatus.ABSENT and not justified)
@@ -74,11 +70,13 @@ def overview_report(db: Session, *, tenant_id: uuid.UUID, term: str | None = Non
     }
 
     return {
+        "academic_year": year,
         "total_active_students": total_students,
         "finance": {
-            "amount_due_total": float(amount_due_total),
-            "amount_paid_total": float(amount_paid_total),
-            "outstanding_total": float(amount_due_total) - float(amount_paid_total),
+            "amount_due_total": fin["due"],
+            "amount_paid_total": fin["paid"],
+            "outstanding_total": fin["outstanding"],
+            "previous_years_outstanding": fin["previous_years_outstanding"],
         },
         "attendance": {
             "records_count": total_attendance,

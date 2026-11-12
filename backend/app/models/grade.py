@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String
+from sqlalchemy import Index, Boolean, DateTime, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,6 +14,7 @@ class Grade(Base, TenantScopedMixin, TimestampMixin):
     dénormalisée, pour éviter toute divergence après correction d'une note."""
 
     __tablename__ = "grades"
+    __table_args__ = (Index("ix_grades_tenant_year_term", "tenant_id", "academic_year", "term"),)
 
     id: Mapped[uuid.UUID] = uuid_pk()
     student_id: Mapped[uuid.UUID] = mapped_column(

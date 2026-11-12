@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import date
 
-from sqlalchemy import Date, Enum, ForeignKey, Numeric, String
+from sqlalchemy import Index, Date, Enum, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,12 +25,15 @@ class PaymentMethod(str, enum.Enum):
 
 class Invoice(Base, TenantScopedMixin, TimestampMixin):
     __tablename__ = "invoices"
+    __table_args__ = (Index("ix_invoices_tenant_year", "tenant_id", "academic_year"),)
 
     id: Mapped[uuid.UUID] = uuid_pk()
     student_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True
     )
     label: Mapped[str] = mapped_column(String(200), nullable=False)  # ex: "Scolarité T1 2026-2027"
+    # Année scolaire à laquelle se rattache la facture (rapports : « dû de l'année » vs « arriérés »).
+    academic_year: Mapped[str] = mapped_column(String(9), nullable=False)
     amount_due: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     due_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[InvoiceStatus] = mapped_column(

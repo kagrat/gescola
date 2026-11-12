@@ -56,3 +56,12 @@ def ensure_academic_year(db: Session, tenant_id: uuid.UUID) -> str:
         tenant.academic_year = default_academic_year(date.today())
         db.flush()
     return tenant.academic_year
+
+
+def year_start(year: str) -> date:
+    """1er septembre de l'année de début (convention déjà utilisée par les bulletins)."""
+    return date(int(year[:4]), 9, 1)
+
+
+def year_end_exclusive(year: str) -> date:
+    return date(int(year[:4]) + 1, 9, 1)

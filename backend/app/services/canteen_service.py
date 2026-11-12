@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.canteen import CanteenPlan, CanteenSubscription
 from app.models.finance import Invoice
 from app.schemas.canteen import CanteenPlanCreate, CanteenSubscriptionCreate
+from app.services.academic_year_service import default_academic_year
 from app.services.academic_service import get_student_or_404
 from app.services.audit_service import log_action
 
@@ -46,6 +47,7 @@ def subscribe(db: Session, *, tenant_id: uuid.UUID, actor_id: uuid.UUID, data: C
     # (module finance) plutôt qu'un système de facturation cantine séparé.
     invoice = Invoice(
         tenant_id=tenant_id, student_id=data.student_id, label=f"Cantine — {plan.name} — {data.month}",
+        academic_year=default_academic_year(date.fromisoformat(f"{data.month}-01")),  # année du MOIS facturé
         amount_due=plan.price_per_month, due_date=date.fromisoformat(f"{data.month}-05"),
     )
     db.add(invoice)

@@ -39,6 +39,7 @@ class SchoolSnapshot(BaseModel):
     staff_count: int
     revenue_due: float
     revenue_collected: float
+    previous_years_outstanding: float = 0
     recovery_rate_percent: float | None
 
 
@@ -47,6 +48,7 @@ class NetworkTotals(BaseModel):
     active_students: int
     revenue_due: float
     revenue_collected: float
+    previous_years_outstanding: float = 0
     recovery_rate_percent: float | None
 
 

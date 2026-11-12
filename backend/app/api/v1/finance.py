@@ -20,7 +20,8 @@ def create_invoice_endpoint(
 ) -> InvoiceOut:
     inv = create_invoice(db, tenant_id=current_user.tenant_id, data=payload)
     return InvoiceOut(
-        id=inv.id, student_id=inv.student_id, label=inv.label, amount_due=float(inv.amount_due),
+        id=inv.id, student_id=inv.student_id, label=inv.label, academic_year=inv.academic_year,
+        amount_due=float(inv.amount_due),
         due_date=inv.due_date, status=inv.status, amount_paid=0, balance=float(inv.amount_due),
     )
 

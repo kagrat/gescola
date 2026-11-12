@@ -10,6 +10,8 @@ from app.models.school_network import SchoolNetwork
 from app.models.student import Student, StudentStatus
 from app.models.tenant import Tenant
 from app.models.user import User, UserRole
+from app.services.academic_year_service import academic_year_of
+from app.services.finance_service import finance_totals
 
 
 def _school_snapshot(db: Session, tenant: Tenant) -> dict:
@@ -31,16 +33,8 @@ def _school_snapshot(db: Session, tenant: Tenant) -> dict:
         select(func.count()).select_from(User).where(User.tenant_id == tenant.id, User.role != UserRole.PARENT)
     ).scalar_one()
 
-    amount_due = db.execute(
-        select(func.coalesce(func.sum(Invoice.amount_due), 0)).where(
-            Invoice.tenant_id == tenant.id, Invoice.status != InvoiceStatus.CANCELLED
-        )
-    ).scalar_one()
-    amount_paid = db.execute(
-        select(func.coalesce(func.sum(Payment.amount), 0))
-        .join(Invoice, Payment.invoice_id == Invoice.id)
-        .where(Payment.tenant_id == tenant.id, Invoice.status != InvoiceStatus.CANCELLED)
-    ).scalar_one()
+    fin = finance_totals(db, tenant_id=tenant.id, year=academic_year_of(tenant))
+    amount_due, amount_paid = fin["due"], fin["paid"]
 
     recovery_rate = round(100 * float(amount_paid) / float(amount_due), 1) if amount_due else None
 
@@ -52,6 +46,7 @@ def _school_snapshot(db: Session, tenant: Tenant) -> dict:
         "staff_count": staff_count,
         "revenue_due": float(amount_due),
         "revenue_collected": float(amount_paid),
+        "previous_years_outstanding": fin["previous_years_outstanding"],
         "recovery_rate_percent": recovery_rate,
     }
 
@@ -85,6 +80,7 @@ def network_overview(db: Session, *, network_id: uuid.UUID) -> dict:
             "active_students": total_students,
             "revenue_due": total_due,
             "revenue_collected": total_collected,
+            "previous_years_outstanding": round(sum(s["previous_years_outstanding"] for s in schools), 2),
             "recovery_rate_percent": total_recovery,
         },
     }

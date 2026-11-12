@@ -114,7 +114,7 @@
 | AU-25 | Recherche d'élèves sensible aux accents (« Aicha » ne trouve pas « Aïcha ») : nécessite l'extension PostgreSQL `unaccent` ou une colonne normalisée | P2 | ⏳ |
 | AU-26 | Les écrans de sélection (cantine, bibliothèque, discipline, messages, mes classes, personnel) chargent *tous* les élèves par blocs de 500 : correct mais lourd au-delà de ~2 000 élèves. À remplacer par une recherche à la volée | P1 | ⏳ |
 | AU-27 | Import : ne crée pas les classes manquantes (volontaire), ne crée pas les comptes parents à partir des colonnes tuteur, n'importe pas le personnel (voir AU-22), n'accepte que la 1ʳᵉ feuille d'un classeur Excel | P2 | ⏳ |
-| AU-28 | **Seules les notes sont rattachées à une année.** Présences, incidents de discipline, factures et paiements ne le sont pas : après un passage d'année, le taux d'assiduité des Rapports (`reporting_service`) agrège encore toutes les années, et les factures impayées d'une année restent visibles. À faire : filtrer par année (présences/incidents par date depuis le 1ᵉʳ septembre, factures par année de facturation) | P1 | ⏳ |
+| AU-28 | **Années sur factures et assiduité** : les factures portent leur année (par défaut l'année en cours ; l'année suivante ou une année passée sont possibles, une année lointaine est refusée ; une facture de cantine prend l'année de son mois). Les Rapports et la vue réseau comptent le dû/encaissé de l'année en cours et affichent à part les **arriérés des années précédentes** ; le passage d'année prévient du montant qui deviendra arriéré. Le taux d'assiduité est borné à l'année scolaire (1ᵉʳ sept. → 31 août). L'historique d'un élève (fiche) garde toutes les années. **Choix assumé** : les incidents de discipline ne sont pas rattachés à une année (un incident non traité doit rester visible) ✅ v23 |
 | AU-29 | **Le passage d'année n'est pas annulable.** Garde-fous : aperçu obligatoire, confirmation par saisie de la nouvelle année, historique par élève. Une erreur se corrige élève par élève (classe, statut). Un « annuler le dernier passage » n'a pas été construit : il serait risqué une fois de nouvelles notes saisies | P2 | ⏳ décision |
 | AU-30 | Passage d'année : ne rouvre pas automatiquement les affectations enseignants/emploi du temps (conservés, à revérifier), ne recrée pas de classes (la Direction crée « 4ème A » avant), ne propose pas de décision automatique de redoublement (suggestion = moyenne annuelle < 10/20, modifiable) ; la suggestion de classe d'accueil connaît les niveaux CI→Tle, pas la maternelle | P2 | ⏳ |
 | DM-01 | **Jeu de démonstration en ligne** : le script `backend/scripts/seed_demo.py` est prêt et testé (v21) mais **n'a pas été exécuté sur l'instance Railway** (action propriétaire : voir README). Tant qu'il ne l'est pas, l'instance en ligne n'a aucune école | P0 pour toute présentation | ⏳ action propriétaire |
@@ -160,7 +160,7 @@
 3. ~~**PL-5 Messagerie** (MQ-08, puis AU-18)~~ — ✅ livré (v14).
 4. ~~**Appel en masse et correction après coup** (AU-04/05)~~ — ✅ livré (v20).
 4 bis. ~~**Socle élèves** : statut (AU-23), pagination/recherche des élèves (AU-08, partiel), import (AU-06)~~ — ✅ livré (v21).
-4 ter. ~~**Passage d'année** (AU-07)~~ — ✅ livré (v22). Prochain : rattacher présences/factures à l'année (AU-28), puis vue financière (AU-09), limite du plan (AU-24), reçus/attestations (AU-10).
+4 ter. ~~**Passage d'année** (AU-07)~~ — ✅ livré (v22) ; ~~années sur présences et factures (AU-28)~~ — ✅ livré (v23). Prochain : limite du plan (AU-24), vue financière (AU-09), reçus/attestations (AU-10).
 5. **Compléter la maquette** (MQ-02 à MQ-07) ; reçus/attestations/exports (AU-10/11).
 6. **Bulletins étendus** (BU-04 à BU-08).
 7. **Production** (PR-*, CC-02/03/04) avant le premier établissement réel.
@@ -186,5 +186,6 @@
 
 Voir le README (« Ce qui est inclus », Livraisons 1 à 11+) et `SECURITY.md`.
 
+- **v23** : factures et assiduité rattachées à l'année (AU-28), arriérés séparés dans les Rapports et la vue réseau, avertissement au passage d'année ; 278 tests.
 - **v22** : passage d'année scolaire (AU-07) : notes rattachées à leur année, clôture/promotion/redoublement/sortie, historique des parcours, 272 tests ; limites AU-28 à AU-30.
 - **v21** : statut d'élève contrôlé (AU-23), pagination et recherche des élèves (AU-08 partiel), import CSV/Excel (AU-06), script de démonstration (DM-01), DEF-10, DEF-11. 257 tests.

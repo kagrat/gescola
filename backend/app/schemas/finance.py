@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.finance import InvoiceStatus, PaymentMethod
 
@@ -11,6 +11,10 @@ class InvoiceCreate(BaseModel):
     label: str
     amount_due: float
     due_date: date
+    # Facultatif : par défaut l'année en cours. Une facture peut viser l'année
+    # suivante (frais de réinscription facturés avant la rentrée) ou une année
+    # passée (régularisation d'arriéré).
+    academic_year: str | None = Field(default=None, pattern=r"^\d{4}-\d{4}$")
 
     @field_validator("amount_due")
     @classmethod
@@ -25,6 +29,7 @@ class InvoiceOut(BaseModel):
     id: uuid.UUID
     student_id: uuid.UUID
     label: str
+    academic_year: str
     amount_due: float
     due_date: date
     status: InvoiceStatus
