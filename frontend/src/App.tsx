@@ -6,6 +6,7 @@ import DashboardLayout from "./pages/DashboardLayout";
 import OverviewPage from "./pages/OverviewPage";
 import StudentsPage from "./pages/StudentsPage";
 import StudentImportPage from "./pages/StudentImportPage";
+import YearRolloverPage from "./pages/YearRolloverPage";
 import StudentDetailPage from "./pages/StudentDetailPage";
 import StaffPage from "./pages/StaffPage";
 import MyChildrenPage from "./pages/MyChildrenPage";
@@ -29,7 +30,7 @@ import TimetablePage from "./pages/TimetablePage";
 import MyTimetablePage from "./pages/MyTimetablePage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import RequireRole from "./components/RequireRole";
-import { CAN_MANAGE_REGISTRY } from "./lib/permissions";
+import { CAN_CLOSE_YEAR, CAN_MANAGE_REGISTRY } from "./lib/permissions";
 import MessagesPage from "./pages/MessagesPage";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
 import AttendancePage from "./pages/AttendancePage";
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="eleves" element={<StudentsPage />} />
             <Route path="eleves/import" element={<RequireRole roles={CAN_MANAGE_REGISTRY}><StudentImportPage /></RequireRole>} />
             <Route path="eleves/:studentId" element={<StudentDetailPage />} />
+            <Route path="passage-annee" element={<RequireRole roles={CAN_CLOSE_YEAR}><YearRolloverPage /></RequireRole>} />
             <Route path="personnel" element={<StaffPage />} />
             <Route path="mes-enfants" element={<MyChildrenPage />} />
             <Route path="rapports" element={<ReportsPage />} />

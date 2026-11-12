@@ -27,6 +27,9 @@ class Grade(Base, TenantScopedMixin, TimestampMixin):
     )
 
     term: Mapped[str] = mapped_column(String(20), nullable=False)  # ex: "T1", "T2", "T3"
+    # Année scolaire de saisie (ex. "2026-2027") : sépare les résultats d'une
+    # année à l'autre après le passage d'année (voir rollover_service).
+    academic_year: Mapped[str] = mapped_column(String(9), nullable=False)
     evaluation_label: Mapped[str] = mapped_column(String(100), nullable=False)  # ex: "Devoir 1"
     value: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)  # note sur 20
     coefficient: Mapped[float] = mapped_column(Numeric(4, 2), default=1, nullable=False)

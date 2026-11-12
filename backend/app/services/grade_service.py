@@ -12,6 +12,7 @@ from app.models.user import UserRole
 from app.schemas.academic import StudentCreate  # noqa: F401  (import conservé pour cohérence de module)
 from app.schemas.grade import GradeCreate, StudentAverageOut
 from app.services.academic_service import get_student_or_404
+from app.services.academic_year_service import current_year, ensure_academic_year
 from app.services.audit_service import log_action
 from app.services.results_service import subject_coefficients, weighted_general_average, weighted_subject_average
 from app.services.teaching_service import is_teacher_assigned, teacher_has_any_assignment
@@ -42,8 +43,11 @@ def create_grade(
                     detail="Vous n'êtes pas affecté à cette classe pour cette matière.",
                 )
 
+    # La note appartient à l'année scolaire en cours de l'établissement.
+    year = ensure_academic_year(db, tenant_id)
     grade = Grade(
         tenant_id=tenant_id,
+        academic_year=year,
         student_id=data.student_id,
         subject_id=data.subject_id,
         teacher_id=teacher_id,
@@ -58,9 +62,15 @@ def create_grade(
     return grade
 
 
-def list_grades(db: Session, *, tenant_id: uuid.UUID, student_id: uuid.UUID, term: str | None = None) -> list[Grade]:
+def list_grades(
+    db: Session, *, tenant_id: uuid.UUID, student_id: uuid.UUID, term: str | None = None,
+    academic_year: str | None = None,
+) -> list[Grade]:
+    """Notes d'un élève pour UNE année scolaire (par défaut l'année en cours) :
+    après un passage d'année, les anciennes notes ne se mélangent pas aux nouvelles."""
     get_student_or_404(db, tenant_id=tenant_id, student_id=student_id)
-    stmt = select(Grade).where(Grade.tenant_id == tenant_id, Grade.student_id == student_id)
+    year = academic_year or current_year(db, tenant_id)
+    stmt = select(Grade).where(Grade.tenant_id == tenant_id, Grade.student_id == student_id, Grade.academic_year == year)
     if term:
         stmt = stmt.where(Grade.term == term)
     return list(db.execute(stmt).scalars().all())
@@ -98,6 +108,12 @@ def update_grade(
     if grade is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note introuvable.")
 
+    closed_year = grade.academic_year != current_year(db, tenant_id)
+    if closed_year and not is_admin_override:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cette note appartient à une année scolaire clôturée ; seule la direction peut la corriger.",
+        )
     if grade.is_locked and not is_admin_override:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -107,7 +123,13 @@ def update_grade(
     old_value = grade.value
     grade.value = new_value
 
-    if grade.is_locked and is_admin_override:
+    if closed_year and is_admin_override:
+        log_action(
+            db, tenant_id=tenant_id, actor_user_id=actor_id, action="grade.override_closed_year",
+            target_type="Grade", target_id=str(grade.id),
+            metadata={"academic_year": grade.academic_year, "old_value": float(old_value), "new_value": float(new_value)},
+        )
+    elif grade.is_locked and is_admin_override:
         # Modification exceptionnelle d'une note déjà validée : traçabilité
         # renforcée obligatoire (section 7.5 / risque "modification frauduleuse").
         log_action(

@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutGrid, Users, GraduationCap, Wallet, ShieldCheck, Bell, ScrollText, UtensilsCrossed, Library as LibraryIcon,
   Settings, UserCircle, BookOpen, CalendarDays, CalendarClock, ShieldAlert, FileText, MessageSquare, Megaphone,
-  ClipboardCheck,
+  ClipboardCheck, CalendarCheck,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../lib/api";
@@ -140,6 +140,7 @@ function navItemsFor(role: string) {
     items.push({ to: "/rapports", label: "Rapports", icon: GraduationCap });
     items.push({ to: "/personnel", label: "Personnel", icon: Wallet });
     items.push({ to: "/parametres", label: "Paramètres établissement", icon: Settings });
+    items.push({ to: "/passage-annee", label: "Passage d'année", icon: CalendarCheck });
     items.push({ to: "/abonnement", label: "Mon abonnement", icon: Wallet });
     items.push({ to: "/audit", label: "Journal d'audit", icon: ScrollText });
   }

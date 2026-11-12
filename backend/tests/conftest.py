@@ -53,7 +53,7 @@ TABLES_TO_CLEAN = [
     "timetable_slots", "teacher_assignments",
     "platform_payments", "platform_invoices", "subscriptions", "platform_plans",
     "loans", "books", "canteen_subscriptions", "canteen_plans",
-    "notifications", "guardian_links", "payments", "invoices", "attendances", "grades", "audit_logs",
+    "student_enrollments", "notifications", "guardian_links", "payments", "invoices", "attendances", "grades", "audit_logs",
     "refresh_tokens", "students", "subjects", "school_classes", "users", "tenants", "school_networks",
 ]
 

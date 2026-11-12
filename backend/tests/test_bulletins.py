@@ -4,9 +4,14 @@ import io
 import pypdf
 from PIL import Image
 
+from datetime import date
+
 from app.models.user import UserRole
+from app.services.academic_year_service import default_academic_year
 from app.services.bulletin_pdf import _image
 from app.services.results_service import competition_ranks, weighted_general_average
+
+YEAR = default_academic_year(date.today())  # l'année est figée à la 1re note : ne pas coder en dur
 
 
 def _pdf_text(response) -> str:
@@ -242,7 +247,7 @@ def test_parent_sees_only_published_report_cards_of_own_child(client, make_tenan
 def test_pdf_content_and_configurable_sections(client, make_tenant, make_user, auth_headers):
     s = _school(client, make_tenant, make_user, auth_headers)
     client.patch("/api/v1/establishment/settings", json={"bulletin_motto": "Discipline - Travail - Réussite", "bulletin_place": "Cotonou",
-                                                          "academic_year": "2026-2027"}, headers=s.admin_h)
+                                                          "academic_year": YEAR}, headers=s.admin_h)
     _generate(client, s)
     card = _cards(client, s)["NOMA"]
     client.patch(f"/api/v1/report-cards/{card['id']}", json={"principal_comment": "Excellent trimestre.", "council_decision": "Félicitations"}, headers=s.admin_h)
@@ -250,7 +255,7 @@ def test_pdf_content_and_configurable_sections(client, make_tenant, make_user, a
     full = client.get(f"/api/v1/report-cards/{card['id']}/pdf", headers=s.admin_h)
     assert full.status_code == 200 and full.headers["content-type"] == "application/pdf" and full.content.startswith(b"%PDF")
     text = _pdf_text(full)
-    for expected in ("BULLETIN DE NOTES", "1er Trimestre", "2026-2027", "NOMA PrénomA", "M-A", "Mathématiques", "Total des coefficients",
+    for expected in ("BULLETIN DE NOTES", "1er Trimestre", YEAR, "NOMA PrénomA", "M-A", "Mathématiques", "Total des coefficients",
                      "SYNTHÈSE GÉNÉRALE", "VIE SCOLAIRE", "APPRÉCIATION GÉNÉRALE DU PROFESSEUR PRINCIPAL", "Excellent trimestre.",
                      "Félicitations", "Fait à Cotonou", "Le Censeur", "Le Directeur", "Le Professeur principal", "BROUILLON",
                      "Discipline - Travail - Réussite", "14,00"):
@@ -335,7 +340,7 @@ def test_school_life_counts_respect_configured_term_period(client, make_tenant, 
                                             "severity": "minor", "description": "Bavardage."}, headers=s.admin_h)
     client.post("/api/v1/incidents", json={"student_id": sid, "occurred_at": "2027-03-09T10:00:00+00:00", "category": "behavior",
                                             "severity": "minor", "description": "Hors période."}, headers=s.admin_h)
-    resp = client.patch("/api/v1/establishment/settings", json={"academic_year": "2026-2027",
+    resp = client.patch("/api/v1/establishment/settings", json={"academic_year": YEAR,
                         "term_periods": {"T1": {"start": "2026-09-15", "end": "2026-12-20"}}}, headers=s.admin_h)
     assert resp.status_code == 200 and resp.json()["term_periods"]["T1"]["start"] == "2026-09-15"
 
@@ -429,7 +434,9 @@ def test_bulletin_settings_validation_and_persistence(client, make_tenant, make_
     assert client.patch(url, json={"term_periods": {"T4": {"start": "2026-09-01", "end": "2026-12-01"}}}, headers=s.admin_h).status_code == 422
     body = client.get(url, headers=s.admin_h).json()
     assert body["bulletin_show_appreciations"] is True and body["bulletin_show_school_life"] is True
-    assert body["bulletin_show_head_teacher_signature"] is True and body["academic_year"] is None
+    assert body["bulletin_show_head_teacher_signature"] is True
+    # Figée à la première note saisie (voir ensure_academic_year), jamais « flottante ».
+    assert body["academic_year"] == default_academic_year(date.today())
 
     ok = client.patch(url, json={"bulletin_motto": "  Travail  ", "bulletin_show_school_life": False}, headers=s.admin_h).json()
     assert ok["bulletin_motto"] == "Travail" and ok["bulletin_show_school_life"] is False

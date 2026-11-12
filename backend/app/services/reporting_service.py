@@ -9,6 +9,7 @@ from app.models.academic import SchoolClass
 from app.models.finance import Invoice, InvoiceStatus, Payment
 from app.models.grade import Grade
 from app.models.student import Student, StudentStatus
+from app.services.academic_year_service import current_year
 
 
 def overview_report(db: Session, *, tenant_id: uuid.UUID, term: str | None = None) -> dict:
@@ -45,7 +46,9 @@ def overview_report(db: Session, *, tenant_id: uuid.UUID, term: str | None = Non
     )
 
     # --- Notes : moyenne générale par classe, pour la période demandée ---
-    grade_query = select(Grade.student_id, Grade.value, Grade.coefficient).where(Grade.tenant_id == tenant_id)
+    grade_query = select(Grade.student_id, Grade.value, Grade.coefficient).where(
+        Grade.tenant_id == tenant_id, Grade.academic_year == current_year(db, tenant_id)
+    )
     if term:
         grade_query = grade_query.where(Grade.term == term)
     grade_rows = db.execute(grade_query).all()

@@ -37,6 +37,7 @@ from app.schemas.report_card import (
 from app.services.audit_service import log_action
 from app.services.coursework_service import check_assignment_restriction
 from app.services.bulletin_pdf import build_report_card_pdf
+from app.services.academic_year_service import academic_year_of, default_academic_year  # noqa: F401
 from app.services.guardian_service import assert_parent_linked_to_student
 from app.services.results_service import ClassTermResults, compute_class_term_results
 
@@ -48,14 +49,6 @@ TERM_LABELS = {"T1": "1er Trimestre", "T2": "2e Trimestre", "T3": "3e Trimestre"
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
-
-def default_academic_year(today: date) -> str:
-    start = today.year if today.month >= 9 else today.year - 1
-    return f"{start}-{start + 1}"
-
-
-def academic_year_of(tenant: Tenant, today: date | None = None) -> str:
-    return tenant.academic_year or default_academic_year(today or date.today())
 
 
 def _term_window(tenant: Tenant, term: str, year: str, today: date) -> tuple[date, date, bool]:
@@ -408,6 +401,7 @@ def publish_report_card(db: Session, *, tenant_id: uuid.UUID, actor_id: uuid.UUI
     unlocked = db.execute(
         select(func.count()).select_from(Grade).where(
             Grade.tenant_id == tenant_id, Grade.student_id == card.student_id, Grade.term == card.term,
+            Grade.academic_year == card.academic_year,
             Grade.is_locked.is_(False),
         )
     ).scalar_one()

@@ -2,6 +2,7 @@ from app.models.academic import SchoolClass, Subject  # noqa: F401
 from app.models.attendance import Attendance, AttendanceStatus  # noqa: F401
 from app.models.audit import AuditLog  # noqa: F401
 from app.models.finance import Invoice, InvoiceStatus, Payment, PaymentMethod  # noqa: F401
+from app.models.enrollment import EnrollmentOutcome, StudentEnrollment  # noqa: F401
 from app.models.grade import Grade  # noqa: F401
 from app.models.guardian_link import GuardianLink  # noqa: F401
 from app.models.notification import Notification, NotificationType  # noqa: F401

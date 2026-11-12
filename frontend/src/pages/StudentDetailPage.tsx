@@ -6,7 +6,7 @@ import StatusPill from "../components/StatusPill";
 import { CATEGORY_LABELS, SANCTION_LABELS, SEVERITY, STATUS } from "./DisciplinePage";
 import {
   CAN_LOCK_GRADES, CAN_MANAGE_ATTENDANCE, CAN_MANAGE_FINANCE, CAN_MANAGE_REGISTRY, CAN_OVERRIDE_LOCKED_GRADES,
-  CAN_READ_GRADES, CAN_READ_INCIDENTS, CAN_WRITE_GRADES, roleCan,
+  CAN_READ_GRADES, CAN_READ_INCIDENTS, CAN_READ_REGISTRY, CAN_WRITE_GRADES, roleCan,
 } from "../lib/permissions";
 
 interface Student {
@@ -101,6 +101,8 @@ export default function StudentDetailPage() {
 
       <StudentInfo student={student} canEdit={roleCan(user?.role, CAN_MANAGE_REGISTRY)} onUpdated={reloadStudent} />
 
+      {roleCan(user?.role, CAN_READ_REGISTRY) && <EnrollmentHistory studentId={studentId} />}
+
       {roleCan(user?.role, CAN_READ_GRADES) && <GradesSection studentId={studentId} role={user?.role} />}
       {roleCan(user?.role, CAN_MANAGE_ATTENDANCE) && <AttendanceSection studentId={studentId} />}
       {roleCan(user?.role, CAN_MANAGE_FINANCE) && <FinanceSection studentId={studentId} />}
@@ -108,6 +110,38 @@ export default function StudentDetailPage() {
       {roleCan(user?.role, CAN_MANAGE_FINANCE) && <CanteenSection studentId={studentId} />}
       {roleCan(user?.role, CAN_READ_INCIDENTS) && <DisciplineSection studentId={studentId} />}
     </div>
+  );
+}
+
+// ---------------- Parcours (années clôturées) ----------------
+
+const OUTCOME_LABEL: Record<string, string> = { promoted: "Promu", repeated: "Redouble", graduated: "Diplômé" };
+
+function EnrollmentHistory({ studentId }: { studentId: string }) {
+  const [rows, setRows] = useState<{ academic_year: string; class_name: string; outcome: string; next_class_name: string | null }[]>([]);
+  useEffect(() => {
+    api.get<typeof rows>(`/students/${studentId}/enrollments`).then(setRows).catch(() => setRows([]));
+  }, [studentId]);
+  if (rows.length === 0) return null;
+  return (
+    <section className="mt-10" aria-label="Parcours scolaire">
+      <h2 className="font-display text-xl font-medium text-ink mb-3">Parcours scolaire</h2>
+      <div className="border border-line rounded-lg bg-white overflow-hidden">
+        <table className="w-full text-[13.5px]">
+          <tbody className="divide-y divide-line">
+            {rows.map((r) => (
+              <tr key={r.academic_year}>
+                <td className="px-5 py-2 text-ink/60 w-32">{r.academic_year}</td>
+                <td className="px-5 py-2 font-semibold text-ink">{r.class_name}</td>
+                <td className="px-5 py-2 text-ink/70">
+                  {OUTCOME_LABEL[r.outcome] ?? r.outcome}{r.next_class_name ? ` → ${r.next_class_name}` : ""}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

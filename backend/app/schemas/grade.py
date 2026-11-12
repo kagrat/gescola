@@ -36,6 +36,7 @@ class GradeOut(BaseModel):
     subject_id: uuid.UUID
     teacher_id: uuid.UUID
     term: str
+    academic_year: str
     evaluation_label: str
     value: float
     coefficient: float

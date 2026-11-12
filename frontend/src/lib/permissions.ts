@@ -11,6 +11,8 @@ export const CAN_MANAGE_ATTENDANCE = ["teacher", "school_admin", "staff", "censo
 export const CAN_MANAGE_FINANCE = ["school_admin", "accountant", "founder"];
 export const CAN_READ_REGISTRY = ["school_admin", "staff", "teacher", "censor", "supervisor", "accountant", "founder"];
 export const CAN_MANAGE_REGISTRY = ["school_admin", "staff", "founder"];
+// Clôture de l'année scolaire : Direction + Fondateur (miroir de CAN_ACT_AS_DIRECTION côté API).
+export const CAN_CLOSE_YEAR = ["school_admin", "founder"];
 export const CAN_MANAGE_USERS = ["school_admin", "founder"];
 export const CAN_MANAGE_TEACHING = ["school_admin", "censor", "founder"];
 export const CAN_MANAGE_COURSEWORK = ["teacher", "school_admin", "founder"];

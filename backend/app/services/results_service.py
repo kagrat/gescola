@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.models.academic import Subject
 from app.models.grade import Grade
 from app.models.student import Student, StudentStatus
+from app.services.academic_year_service import current_year
 
 K = TypeVar("K", bound=Hashable)
 
@@ -79,7 +80,10 @@ class ClassTermResults:
     class_average: float | None = None
 
 
-def compute_class_term_results(db: Session, *, tenant_id: uuid.UUID, class_id: uuid.UUID, term: str) -> ClassTermResults:
+def compute_class_term_results(
+    db: Session, *, tenant_id: uuid.UUID, class_id: uuid.UUID, term: str, academic_year: str | None = None,
+) -> ClassTermResults:
+    year = academic_year or current_year(db, tenant_id)
     student_ids = list(
         db.execute(
             select(Student.id).where(
@@ -97,7 +101,9 @@ def compute_class_term_results(db: Session, *, tenant_id: uuid.UUID, class_id: u
         return results
 
     grades = db.execute(
-        select(Grade).where(Grade.tenant_id == tenant_id, Grade.term == term, Grade.student_id.in_(student_ids))
+        select(Grade).where(
+            Grade.tenant_id == tenant_id, Grade.academic_year == year, Grade.term == term, Grade.student_id.in_(student_ids)
+        )
     ).scalars().all()
     per_student_subject: dict[uuid.UUID, dict[uuid.UUID, list[Grade]]] = defaultdict(lambda: defaultdict(list))
     for g in grades:

@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
@@ -36,10 +36,13 @@ def create_grade_endpoint(
 def list_grades_endpoint(
     student_id: uuid.UUID,
     term: str | None = None,
+    academic_year: str | None = Query(default=None, pattern=r"^\d{4}-\d{4}$", description="Par défaut : année en cours"),
     db: Session = Depends(get_tenant_db),
     current_user: CurrentUser = Depends(require_roles(*CAN_READ_GRADES)),
 ) -> list[GradeOut]:
-    return list_grades(db, tenant_id=current_user.tenant_id, student_id=student_id, term=term)
+    return list_grades(
+        db, tenant_id=current_user.tenant_id, student_id=student_id, term=term, academic_year=academic_year
+    )
 
 
 @router.get("/students/{student_id}/average", response_model=StudentAverageOut)

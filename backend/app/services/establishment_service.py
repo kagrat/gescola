@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.grade import Grade
 from app.models.tenant import Tenant
 from app.models.user import User, UserRole
 from app.schemas.establishment import EstablishmentSettingsUpdate
@@ -44,6 +45,17 @@ def update_settings(db: Session, *, tenant_id: uuid.UUID, data: EstablishmentSet
     for field, value in data.model_dump(mode="json", exclude_unset=True).items():
         if field in _BOOLEAN_FIELDS and value is None:
             continue  # colonne non nulle : un null explicite est ignoré, pas une erreur
+        if field == "academic_year" and value != tenant.academic_year:
+            # Les notes portent leur année : changer l'année « à la main » une
+            # fois des notes saisies les ferait disparaître des écrans. Le
+            # changement d'année passe par le passage d'année (rollover).
+            has_grades = db.execute(select(Grade.id).where(Grade.tenant_id == tenant_id).limit(1)).first()
+            if has_grades is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Des notes existent déjà : l'année scolaire ne se change plus ici. "
+                           "Utilisez « Passage d'année » pour clôturer l'année en cours.",
+                )
         if field in _SIGNER_ROLES:
             if value is not None:
                 value = uuid.UUID(value)
