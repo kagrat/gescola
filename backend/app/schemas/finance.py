@@ -171,3 +171,81 @@ class PublicVerification(BaseModel):
     student_name: str
     details: dict[str, str]
     voided_on: date | None = None
+
+
+# ---------------- Barème de frais (CP-01) ----------------
+
+class Installment(BaseModel):
+    label: str = Field(min_length=2, max_length=60)
+    amount: float
+    month: int = Field(ge=1, le=12)
+    day: int = Field(ge=1, le=28)  # ≤ 28 : valable tous les mois, sans cas particulier de février
+
+    @field_validator("amount")
+    @classmethod
+    def positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("Le montant d'une tranche doit être strictement positif.")
+        return round(v, 2)
+
+    @field_validator("label")
+    @classmethod
+    def strip(cls, v: str) -> str:
+        return v.strip()
+
+
+class FeePlanIn(BaseModel):
+    level: str = Field(min_length=1, max_length=50)
+    name: str = Field(min_length=3, max_length=100)
+    installments: list[Installment] = Field(min_length=1, max_length=12)
+
+    @field_validator("level", "name")
+    @classmethod
+    def strip(cls, v: str) -> str:
+        return v.strip()
+
+    @field_validator("installments")
+    @classmethod
+    def distinct_labels(cls, v: list[Installment]) -> list[Installment]:
+        labels = [i.label.lower() for i in v]
+        if len(set(labels)) != len(labels):
+            raise ValueError("Deux tranches ne peuvent pas avoir le même libellé.")
+        return v
+
+
+class FeePlanOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    level: str
+    name: str
+    installments: list[Installment]
+    total: float = 0
+
+
+class FeePlanApply(BaseModel):
+    class_id: uuid.UUID
+    academic_year: str | None = Field(default=None, pattern=r"^\d{4}-\d{4}$")
+
+
+class InstallmentReport(BaseModel):
+    label: str
+    due_date: date
+    created: int
+    already_billed: int
+    total_amount: float
+
+
+class FeePlanApplyReport(BaseModel):
+    dry_run: bool
+    class_name: str
+    academic_year: str
+    students: int
+    discounted_students: int
+    exempted_students: int       # remise de 100 % : rien à facturer
+    installments: list[InstallmentReport]
+    total_amount: float
+
+
+class FeeDiscountIn(BaseModel):
+    percent: float = Field(ge=0, le=100)
+    reason: str | None = Field(default=None, max_length=200)

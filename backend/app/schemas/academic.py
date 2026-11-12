@@ -121,6 +121,8 @@ class StudentOut(BaseModel):
     guardian_phone: str | None
     guardian_email: str | None
     status: StudentStatus
+    fee_discount_percent: float = 0
+    fee_discount_reason: str | None = None
 
 
 class ImportIssueOut(BaseModel):

@@ -1,18 +1,18 @@
 import uuid
 
-from datetime import date
-
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.core.deps import CurrentUser, get_tenant_db, require_roles
 from app.core.roles import CAN_MANAGE_FINANCE
+from app.schemas.academic import StudentOut
 from app.schemas.finance import (
-    BulkInvoiceReport, BulkInvoiceRequest, FinanceSummary, InvoiceCreate, InvoiceOut, InvoiceRow, PaymentCreate, PaymentOut,
+    BulkInvoiceReport, BulkInvoiceRequest, FeeDiscountIn, FeePlanApply, FeePlanApplyReport, FeePlanIn, FeePlanOut, FinanceSummary, InvoiceCreate, InvoiceOut, InvoiceRow, PaymentCreate, PaymentOut,
 )
 from app.services.finance_overview_service import (
     DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, bulk_invoice_class, finance_summary, list_invoice_rows,
 )
+from app.services import fee_plan_service as plans
 from app.services.finance_service import create_invoice, list_invoices, record_payment
 from app.services.notification_service import send_invoice_reminder
 
@@ -102,3 +102,52 @@ def bulk_invoices_endpoint(
     return bulk_invoice_class(
         db, tenant_id=current_user.tenant_id, actor_id=current_user.id, data=payload, commit=not dry_run,
     )
+
+
+# ---------------- Barème de frais (CP-01) ----------------
+
+@router.get("/finance/fee-plans", response_model=list[FeePlanOut])
+def list_fee_plans_endpoint(
+    db: Session = Depends(get_tenant_db), current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_FINANCE)),
+):
+    return plans.list_plans(db, tenant_id=current_user.tenant_id)
+
+
+@router.post("/finance/fee-plans", response_model=FeePlanOut, status_code=201)
+def create_fee_plan_endpoint(
+    payload: FeePlanIn, db: Session = Depends(get_tenant_db), current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_FINANCE)),
+):
+    return plans.create_plan(db, tenant_id=current_user.tenant_id, actor_id=current_user.id, data=payload)
+
+
+@router.put("/finance/fee-plans/{plan_id}", response_model=FeePlanOut)
+def update_fee_plan_endpoint(
+    plan_id: uuid.UUID, payload: FeePlanIn, db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_FINANCE)),
+):
+    return plans.update_plan(db, tenant_id=current_user.tenant_id, actor_id=current_user.id, plan_id=plan_id, data=payload)
+
+
+@router.delete("/finance/fee-plans/{plan_id}", status_code=204)
+def delete_fee_plan_endpoint(
+    plan_id: uuid.UUID, db: Session = Depends(get_tenant_db), current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_FINANCE)),
+) -> None:
+    plans.delete_plan(db, tenant_id=current_user.tenant_id, actor_id=current_user.id, plan_id=plan_id)
+
+
+@router.post("/finance/fee-plans/{plan_id}/apply", response_model=FeePlanApplyReport)
+def apply_fee_plan_endpoint(
+    plan_id: uuid.UUID, payload: FeePlanApply,
+    dry_run: bool = Query(default=True, description="true = aperçu sans rien créer (défaut)"),
+    db: Session = Depends(get_tenant_db), current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_FINANCE)),
+):
+    return plans.apply_plan(db, tenant_id=current_user.tenant_id, actor_id=current_user.id, plan_id=plan_id, data=payload, commit=not dry_run)
+
+
+@router.put("/students/{student_id}/fee-discount", response_model=StudentOut)
+def set_fee_discount_endpoint(
+    student_id: uuid.UUID, payload: FeeDiscountIn, db: Session = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(require_roles(*CAN_MANAGE_FINANCE)),
+):
+    return plans.set_discount(db, tenant_id=current_user.tenant_id, actor_id=current_user.id, student_id=student_id,
+                              percent=payload.percent, reason=payload.reason)

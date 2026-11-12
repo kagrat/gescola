@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams, Link } from "react-router-dom";
+import { StudentDiscount } from "../components/FeePlans";
 import { Certificates, PaymentsHistory } from "../components/StudentDocuments";
 import { openPdf } from "../lib/files";
 import { api, ApiError } from "../lib/api";
@@ -790,6 +791,7 @@ function FinanceSection({ studentId }: { studentId: string }) {
           </tbody>
         </table>
       </div>
+      <StudentDiscount studentId={studentId} />
       {remindMessage && <p className="mt-2 text-sm text-ink/60">{remindMessage}</p>}
       {lastReceipt && (
         <p className="mt-2 text-sm text-pass">

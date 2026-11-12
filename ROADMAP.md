@@ -131,7 +131,8 @@ Constat de départ : un logiciel de gestion scolaire est jugé sur ce qu'il fait
 | # | Fonction | Pourquoi c'est différenciant | Statut |
 |---|---|---|---|
 | CP-00 | Reçus et attestations **vérifiables par QR code** | Les faux reçus sont un vrai problème ; peu de concurrents locaux offrent une vérification publique | ✅ v26 |
-| CP-01 | **Barème de frais par niveau + échéancier en tranches** (facturer « Scolarité T1/T2/T3 » d'un coup, remises fratrie) | Supprime la saisie manuelle de montants ; base des relances automatiques | ⏳ prochain |
+| CP-01 | **Barème de frais par niveau + échéancier en tranches** : barème par niveau (tranches datées, réutilisable chaque année), facturation de toute une classe en un clic (aperçu puis confirmation, sans doublon), **remise par élève** (fratrie, bourse, jusqu'à 100 %) appliquée automatiquement | Supprime la saisie manuelle de montants ; base des relances automatiques | ✅ v27 (limites : CP-08) |
+| CP-08 | Barèmes : une seule remise en % par élève (pas de détection automatique de la fratrie, pas de remise par tranche ni en montant fixe) ; une remise modifiée ne réécrit jamais les factures déjà créées ; pas de frais d'inscription distincts ni de frais optionnels (transport, uniforme) ; pas de relance automatique à l'échéance (dépend de CP-03) | P2 | ⏳ |
 | CP-02 | **Paiement Mobile Money réel** (agrégateur type KkiaPay/FedaPay) : le parent paie depuis son téléphone, le reçu et la facture se mettent à jour seuls | Premier moyen de paiement au Bénin ; = CC-02 (dépend d'un contrat et de clés API) | ⏳ owner |
 | CP-03 | **SMS / WhatsApp** : relances d'impayés, absences, convocations | Les parents ne lisent pas les e-mails ; = CC-03 (dépend d'un fournisseur) | ⏳ owner |
 | CP-04 | **Exports Excel/PDF** (listes, présences, finances) | Exigé par toute direction et par les inspections ; = AU-11 | ⏳ |
@@ -179,7 +180,7 @@ Constat de départ : un logiciel de gestion scolaire est jugé sur ce qu'il fait
 3. ~~**PL-5 Messagerie** (MQ-08, puis AU-18)~~ — ✅ livré (v14).
 4. ~~**Appel en masse et correction après coup** (AU-04/05)~~ — ✅ livré (v20).
 4 bis. ~~**Socle élèves** : statut (AU-23), pagination/recherche des élèves (AU-08, partiel), import (AU-06)~~ — ✅ livré (v21).
-4 ter. ~~**Passage d'année** (AU-07)~~ — ✅ livré (v22) ; ~~années sur présences et factures (AU-28)~~ — ✅ livré (v23). ~~limite du plan (AU-24)~~ — ✅ livré (v24). ~~vue financière (AU-09)~~ — ✅ livré (v25) ; ~~reçus/attestations vérifiables (AU-10)~~ — ✅ livré (v26). Prochain : différenciateurs compétitifs (section 5 ter, d'abord barème de frais + échéancier CP-01 et exports AU-11).
+4 ter. ~~**Passage d'année** (AU-07)~~ — ✅ livré (v22) ; ~~années sur présences et factures (AU-28)~~ — ✅ livré (v23). ~~limite du plan (AU-24)~~ — ✅ livré (v24). ~~vue financière (AU-09)~~ — ✅ livré (v25) ; ~~reçus/attestations vérifiables (AU-10)~~ — ✅ livré (v26). ~~barème de frais et remises (CP-01)~~ — ✅ livré (v27). Prochain : exports (AU-11/CP-04), puis reprise de données (CP-06) et alertes précoces (CP-07).
 5. **Compléter la maquette** (MQ-02 à MQ-07) ; reçus/attestations/exports (AU-10/11).
 6. **Bulletins étendus** (BU-04 à BU-08).
 7. **Production** (PR-*, CC-02/03/04) avant le premier établissement réel.
@@ -207,7 +208,8 @@ Constat de départ : un logiciel de gestion scolaire est jugé sur ce qu'il fait
 
 Voir le README (« Ce qui est inclus », Livraisons 1 à 11+) et `SECURITY.md`.
 
-- **v26** : reçus numérotés et attestations de scolarité en PDF, QR code et page publique de vérification, accès parents (AU-10) ; 323 tests ; section « différenciateurs compétitifs » (CP).
+- **v27** : barèmes de frais par niveau en tranches datées, facturation d'une classe en un clic, remises par élève (CP-01) ; 335 tests.
+- **v26** : reçus numérotés et attestations de scolarité en PDF, QR code et page publique de vérification, accès parents (AU-10) ; 335 tests ; section « différenciateurs compétitifs » (CP).
 - **v25** : vue financière globale (AU-09), facturation par classe, encaissements sécurisés (DEF-13) ; 308 tests.
 - **v24** : limite d'élèves du plan appliquée (AU-24) : création, réactivation, import ; verrou anti-concurrence, bandeaux et jauge ; 291 tests.
 - **v23** : factures et assiduité rattachées à l'année (AU-28), arriérés séparés dans les Rapports et la vue réseau, avertissement au passage d'année ; 278 tests.

@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Enum, ForeignKey, Index, String
+from sqlalchemy import Boolean, Date, Enum, ForeignKey, Index, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -47,6 +47,11 @@ class Student(Base, TenantScopedMixin, TimestampMixin):
     guardian_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     guardian_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
     guardian_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # Remise sur frais de scolarité (fratrie, boursier…), en %, appliquée automatiquement
+    # quand un barème est facturé à la classe. 0 = aucune.
+    fee_discount_percent: Mapped[float] = mapped_column(Numeric(5, 2), default=0, server_default="0", nullable=False)
+    fee_discount_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     status: Mapped[StudentStatus] = mapped_column(
         Enum(StudentStatus, name="student_status", values_callable=lambda x: [e.value for e in x]),

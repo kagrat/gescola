@@ -3,7 +3,7 @@ import uuid
 from datetime import date
 
 from sqlalchemy import Index, Date, Enum, ForeignKey, Integer, Numeric, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base, TenantScopedMixin, TimestampMixin, uuid_pk
@@ -61,3 +61,21 @@ class Payment(Base, TenantScopedMixin, TimestampMixin):
     receipt_number: Mapped[int] = mapped_column(Integer, nullable=False)
 
     invoice: Mapped["Invoice"] = relationship(back_populates="payments")
+
+
+class FeePlan(Base, TenantScopedMixin, TimestampMixin):
+    """Barème de frais d'un niveau (ex. « Scolarité » en 6ème : 3 tranches).
+
+    Réutilisable d'une année à l'autre : les tranches portent un MOIS et un JOUR
+    d'échéance, l'année est déduite de l'année scolaire facturée (septembre à
+    décembre = année de début, janvier à août = année de fin). Les factures
+    créées sont indépendantes du barème : le modifier ne touche pas à l'existant."""
+
+    __tablename__ = "fee_plans"
+    __table_args__ = (UniqueConstraint("tenant_id", "level", "name", name="uq_fee_plan_level_name"),)
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    level: Mapped[str] = mapped_column(String(50), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # [{"label": "Tranche 1", "amount": 50000, "month": 10, "day": 15}, ...] dans l'ordre chronologique scolaire
+    installments: Mapped[list] = mapped_column(JSONB, nullable=False)

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { Link } from "react-router-dom";
 import { Search, ChevronLeft, ChevronRight, BellRing } from "lucide-react";
 import { api, ApiError } from "../lib/api";
+import FeePlans from "../components/FeePlans";
 import RequireRole from "../components/RequireRole";
 import StatusPill from "../components/StatusPill";
 import { CAN_MANAGE_FINANCE } from "../lib/permissions";
@@ -16,7 +17,7 @@ interface InvoiceRow {
   id: string; student_id: string; student_name: string; class_name: string | null; label: string; academic_year: string;
   amount_due: number; amount_paid: number; balance: number; due_date: string; state: string; days_overdue: number;
 }
-interface SchoolClass { id: string; name: string }
+interface SchoolClass { id: string; name: string; level: string }
 interface BulkReport { dry_run: boolean; class_name: string; academic_year: string; students: number; created: number; already_billed: number; total_amount: number }
 
 const STATE: Record<string, { label: string; tone: "ok" | "warn" | "bad" | "neutral" }> = {
@@ -48,6 +49,7 @@ function FinanceContent() {
         <p className="text-[12.5px] text-ink/60 mt-0.5">Vue d'ensemble des frais de scolarité de l'établissement.</p>
       </div>
       <SummarySection refreshKey={refresh} />
+      <FeePlans classes={classes} onBilled={() => setRefresh((k) => k + 1)} />
       <BulkSection classes={classes} onDone={() => setRefresh((k) => k + 1)} />
       <InvoicesSection classes={classes} refreshKey={refresh} onChanged={() => setRefresh((k) => k + 1)} />
     </div>

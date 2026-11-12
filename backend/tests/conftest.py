@@ -46,7 +46,7 @@ def reset_rate_limiter():
 
 TABLES_TO_CLEAN = [
     "messages", "thread_participants", "message_threads", "announcements",
-    "report_card_assets", "certificates", "document_verifications",
+    "report_card_assets", "fee_plans", "certificates", "document_verifications",
     "report_cards", "subject_appreciations",
     "sanctions", "incidents",
     "homework", "lesson_log_entries",

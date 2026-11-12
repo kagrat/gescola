@@ -119,6 +119,13 @@ Ce dépôt est un produit en construction, pas un produit fini. **Tout ce qui re
 - **« Informer les parents »** depuis un incident disciplinaire (Discipline) : ouvre la messagerie avec l'élève, l'objet et les parents déjà préremplis — un geste volontaire du personnel qui traite l'incident, jamais un envoi automatique (voir ROADMAP DP-06 pour la question de gouvernance encore ouverte : la Direction voit-elle tous les fils, ou seulement ceux où elle est participante ?).
 - **Trois défauts trouvés et corrigés en auditant ce qui avait été construit avant reprise de cette phase** (voir ROADMAP, Journal des défauts corrigés DEF-06 à DEF-08) : **le frontend ne compilait plus du tout** (page manquante sur le disque malgré son import), le lien Discipline → Messagerie était prévu mais jamais branché, et une fenêtre de composition affichait « Chargement… » indéfiniment quand un élève n'avait réellement aucun parent rattaché.
 
+**Livraison 27 — Barèmes de frais, tranches et remises (ROADMAP CP-01)**
+
+- **Barème par niveau** (ex. « Scolarité » en 6ème : 3 tranches datées), réutilisable d'une année à l'autre ; répartition en 2, 3 ou 4 tranches égales en un clic.
+- **Facturation de toute une classe** par barème : aperçu détaillé (tranche par tranche), puis confirmation. Rejouable sans doublon ; modifier un barème n'affecte pas les factures déjà créées ; un barème ne s'applique qu'aux classes de son niveau.
+- **Remise par élève** (fratrie, bourse, 0 à 100 %) appliquée automatiquement, arrondie au franc ; 100 % = exempté. Chaque changement est tracé au journal d'audit.
+- Migration `f1b9c2d4e7a5` (sans rattrapage : les élèves existants n'ont aucune remise).
+
 **Livraison 26 — Reçus et attestations vérifiables (ROADMAP AU-10)**
 
 - **Reçu de paiement PDF** numéroté (suite continue par établissement), proposé dès l'encaissement et dans l'historique des paiements de l'élève ; les parents retrouvent les reçus de leurs enfants.
@@ -176,7 +183,7 @@ Ce dépôt est un produit en construction, pas un produit fini. **Tout ce qui re
 - **Manque découvert en écrivant les tests, pas encore comblé** (ROADMAP AU-23) : `StudentStatus` (actif/transféré/diplômé/archivé) existe et sert déjà à filtrer les élèves actifs partout, mais **aucun endpoint ne permet jamais de le faire évoluer** — un élève reste actif pour toujours.
 
 **Transverse**
-- **323 tests automatisés**, exécutés contre une vraie base PostgreSQL (RLS forcée sur chaque table sensible).
+- **335 tests automatisés**, exécutés contre une vraie base PostgreSQL (RLS forcée sur chaque table sensible).
 - **Frontend React + Vite + Tailwind** couvrant : connexion (avec étape MFA), tableau de bord par rôle, fiche élève (notes/présences/finances), personnel, portail parent, rapports, sécurité, notifications, audit, cantine, bibliothèque — connecté au vrai backend, testé de bout en bout avec un navigateur automatisé (captures ci-dessous). **Design aligné sur la maquette de référence fournie** (`gescola-maquette.html`) : palette navy/cream/sky/emerald/coral, typographie Lora + Inter, sidebar à icônes, pastilles de statut à point coloré, avatars à initiales.
 - Migrations Alembic, Dockerfile, docker-compose, configuration par variables d'environnement (aucun secret en dur).
 
@@ -273,7 +280,7 @@ Cette section documente honnêtement ce qui **n'est pas** couvert par ce livrabl
 | **Bulletins publiés avant la Livraison 12** | Ils n'ont pas de données figées : ils se réimpriment avec l'état courant. Les dépublier puis les republier les fige (ROADMAP BU-11). |
 | **Bulletin : périodes et formats** | Trimestres T1/T2/T3 uniquement (pas de semestres) ; sans dates de trimestre configurées, la vie scolaire est comptée depuis le 1er septembre. Le rang est calculé parmi les élèves actifs de la classe ayant une moyenne. Les images SVG ne sont pas imprimées (PNG/JPEG/WebP/GIF). Pas de bulletin de fin d'année (moyenne annuelle). |
 | **Manques découverts à l'audit du code** | Changement/réinitialisation de mot de passe, modification et désactivation de compte, appel de classe en une fois, import en masse d'élèves, passage d'année, pagination, vue financière globale, reçus, exports, modification d'un créneau d'emploi du temps… **Tous inscrits, priorisés et suivis dans ROADMAP section 5 (AU-01 à AU-18).** |
-| **Tests automatisés frontend** | **Absents.** Les 323 tests automatisés couvrent exclusivement le backend (API + base de données). Chaque vérification frontend dans ce livrable (garde d'accès par rôle, formulaires, tableaux de bord) a été faite manuellement avec un navigateur automatisé au moment de la construction, pas intégrée dans une suite rejouable en continu (Vitest, Playwright Test) qui détecterait automatiquement une régression future. |
+| **Tests automatisés frontend** | **Absents.** Les 335 tests automatisés couvrent exclusivement le backend (API + base de données). Chaque vérification frontend dans ce livrable (garde d'accès par rôle, formulaires, tableaux de bord) a été faite manuellement avec un navigateur automatisé au moment de la construction, pas intégrée dans une suite rejouable en continu (Vitest, Playwright Test) qui détecterait automatiquement une régression future. |
 | **Vue « groupe » multi-établissements** | **Implémentée.** Nouveau rôle `network_admin` (promoteur), modèle `SchoolNetwork`, tableau de bord consolidé (`GET /network/overview`) agrégeant effectifs, encaissé/dû et taux de recouvrement par établissement — provisionné exclusivement par le Super Admin (`POST /networks`, `/networks/{id}/tenants/{tenant_id}`, `/networks/{id}/admins`). Lecture établissement par établissement en basculant le contexte RLS, jamais de requête cross-tenant : aucune policy RLS existante n'a été affaiblie pour livrer cette fonctionnalité. |
 | **Cycles scolaires** (maternelle/primaire/secondaire) | **Implémenté.** Champ `cycle` sur les classes (`POST /classes`), utilisé pour segmenter les effectifs — pas encore affiché en agrégat par cycle dans la vue groupe (seulement par établissement pour l'instant). |
 | **Écarts avec la maquette de référence** | Emploi du temps, discipline, bulletins, cahier de texte et tableaux de bord par rôle sont livrés. Restent la messagerie et plusieurs écrans par rôle — liste complète et priorisée : ROADMAP section 4 (MQ-01 à MQ-08). |
